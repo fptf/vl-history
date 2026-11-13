@@ -9,3 +9,5 @@ __pycache__/
 # Рабочие файлы сборки (создаются скриптами)
 rows.json
 data.json
+# Слой домов (houses_prep.py)
+houses.json
