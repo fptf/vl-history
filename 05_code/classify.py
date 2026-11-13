@@ -1,5 +1,6 @@
-import re, json
-raw=[l.strip().split('|') for l in open('/home/claude/streets_raw.txt',encoding='utf-8') if l.strip()]
+import re, json, os
+HERE=os.path.dirname(os.path.abspath(__file__))
+raw=[l.strip().split('|') for l in open(os.path.join(HERE,'..','02_data','ginfo_streets_raw.txt'),encoding='utf-8') if l.strip()]
 TYPE={'ул':'улица','пер':'переулок','пр-т':'проспект','ш':'шоссе'}
 
 def L(s): return [x.strip() for x in s.split(';') if x.strip()]
@@ -94,4 +95,4 @@ for t,n in raw:
     rows.append(dict(name=n,type=TYPE[t],group=g,cat=c,sub=s,conf=conf,note=NOTES.get(n,'')))
 unused=[k for k in C if k not in {n for _,n in raw}]
 print('rows',len(rows),'missing',miss,'unused',unused)
-json.dump(rows,open('/home/claude/vl/rows.json','w',encoding='utf-8'),ensure_ascii=False)
+json.dump(rows,open(os.path.join(HERE,'rows.json'),'w',encoding='utf-8'),ensure_ascii=False)

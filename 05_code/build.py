@@ -1,7 +1,8 @@
-import json
+import json, os
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
-rows=json.load(open('rows.json',encoding='utf-8'))
+HERE=os.path.dirname(os.path.abspath(__file__))
+rows=json.load(open(os.path.join(HERE,'rows.json'),encoding='utf-8'))
 GORDER=['Персоналии','География','Природа','Тематические (нарицательные)','Описательные и ориентирующие','События и символика','Прочее / неясно']
 from collections import OrderedDict, Counter
 cats=OrderedDict()
@@ -65,5 +66,5 @@ cross=[('Море и флот','флотоводцы и капитаны, кор
 for a,b,f in cross:
     w(f'B{r}',a); w(f'C{r}',b); w(f'D{r}',f,N,'0'); r+=1
 r+=1; w(f'B{r}','Сквозные темы пересекаются, поэтому их сумма больше общего числа улиц.',Font(name=F,italic=True,color='666666'))
-wb.save('/mnt/user-data/outputs/vladivostok_streets.xlsx')
+wb.save(os.path.normpath(os.path.join(HERE,'..','02_data','vladivostok_streets.xlsx')))
 print(last,r)

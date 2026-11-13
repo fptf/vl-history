@@ -1,60 +1,13 @@
-import json,re,math,collections
-SRC='/home/claude/vv/vvmap-main/vvmap/src/'
-fs=json.load(open(SRC+'year.geojson'))['features']
-capes=json.load(open(SRC+'capes.geojson'))['features']
-rows=json.load(open('/home/claude/vl/rows.json',encoding='utf-8'))
-TW=['улица','переулок','проспект','шоссе','бульвар','площадь','проезд','тупик','набережная','аллея','спуск']
-def norm(s):
-    s=s.lower().replace('ё','е').replace('-',' ')
-    return ' '.join(sorted(t for t in s.split() if t not in TW))
-mine={}
-for r in rows: mine.setdefault(norm(r['name']),r)
-P,G,N,T,O,S,X='Персоналии','География','Природа','Тематические (нарицательные)','Описательные и ориентирующие','События и символика','Прочее / неясно'
-E={}
-def add(g,c,s,names,unsure=False):
-    for n in names.split(';'):
-        n=n.strip()
-        if n: E[norm(n)]=dict(group=g,cat=c,sub=s,conf='нужна проверка' if unsure else 'высокая')
-add(P,'Флот и мореплаватели','Флотоводцы XX в.','Адмирала Спиридонова')
-add(P,'Исследователи и освоители края','Основатели и администраторы','Субботича;Гродекова')
-add(P,'Военачальники и герои войн','До XX века','Суворовская')
-add(P,'Военачальники и герои войн','Современные','героя России Жоги')
-add(P,'Военачальники и герои войн','Прочие','Ефрейтора Нуштаева',True)
-add(P,'Учёные и изобретатели','Наука','Академика Касьянова;Дерюгина')
-add(P,'Писатели и поэты','Литература','Лермонтова;Мандельштама;Чингиза Айтматова;Катаева')
-add(P,'Писатели и поэты','Литература','Михаила Щербакова',True)
-add(P,'Художники и скульпторы','Изобразительное искусство','Кустодиева;Тропинина;Перова;Мясоедова;Венецианова;Архипова;Кипренского;Боровиковского')
-add(P,'Политики, революционеры, госдеятели','Советские деятели','Калининская',True)
-add(P,'Местные деятели и неустановленные','Требует уточнения','Бекетова;Лукина;Балабина;Августа Менарда;Батаршина',True)
-add(P,'Исследователи и освоители края','Первооткрыватели и путешественники','Топографа Мерзлякова')
-add(G,'Города и регионы (вне ДВ)','Европейская Россия','Кронштадтская;Клинская;Новороссийская')
-add(G,'Города и регионы (вне ДВ)','Кавказ и Средняя Азия','Майкопская')
-add(G,'Города и регионы (вне ДВ)','Сибирь и Урал','Даурская;Кузбасская;Кемеровская')
-add(G,'Города и регионы (вне ДВ)','Зарубежье','Порт-Артурская')
-add(G,'Горы и горные системы','Горы','Тирольская;Балканская;Памирская;Карпатская;Гималайская;Тибетская;Альпийская;Пиренейская;Саянская;Верхоянская;Понтийская')
-add(G,'Моря, озёра, реки','Реки Сибири и Дальнего Востока','Алданская')
-add(G,'Приморье и Дальний Восток','Регионы и острова ДВ','Камчатская;Вилючинская;Авачинская')
-add(G,'Приморье и Дальний Восток','Города и сёла Приморья','Путятинская;Тернейская;Иннокентьевская;Спасская;Надеждинская;Ливадийская')
-add(G,'Приморье и Дальний Восток','Города и сёла Приморья','Покровская',True)
-add(G,'Приморье и Дальний Восток','Местные микротопонимы Владивостока','Мыс Доронина;Спортивной Гавани')
-add(N,'Камни и минералы','Самоцветы','Изумрудная;Бирюзовая;Агатовая;Янтарная;Жемчужная;Кристальная;Малахитовая;Нефритовая')
-add(N,'Флора','Цветы и травы','Эвкалиптовая;Тимьяновая;Женьшеневая;Лиановая;Папоротниковая;Кустовой;Лиственный')
-add(N,'Фауна','Животные и птицы','Леопардовая')
-add(N,'Погода, небо, времена года','Погода и небо','Муссонная;Туманная;Полуденная;Апрельская;Летний;Облачная')
-add(N,'Рельеф и ландшафт','Рельеф','Скалистый;Перевальная;Нагорная;Голецкий;Заповедная')
-add(N,'Рельеф и ландшафт','Вода и берега','Лиманная')
-add(T,'Авиация и космос','Авиация и космос','Аэродромная')
-add(T,'Армия и крепость','Военная тематика','Крепостная;Ворошиловская батарея')
-add(T,'Море, флот, порт','Морская тематика','Морская;Морской;Флагманская;Штурманская;Мачтовая;Сейнерная;Швартовая;Капитанская;Шкиперская;Адмиральская;Ледокольная')
-add(T,'Наука, образование, искусство','Нарицательные','Университетский;Университетская;Студенческая;Школьная;Ботаническая;Поэтический;Литературная;Живописный;Архитектурная;Туристическая')
-add(T,'Промышленность, транспорт, хозяйство','Хозяйство и инфраструктура','Энергетиков;Заводская;Строительная')
-add(O,'Эмоциональные и абстрактные','Позитивные','Колоритная;Благодатная;Былинная;Заветная;Видная;Раздольная;Дружбы;Булатная')
-add(O,'Форма, положение, назначение','Описательные','Новая;Прямой;Парковая;Гладкий')
-add(O,'Номера и стороны света','Порядковые и направления','Одиннадцатая')
-add(O,'Форма, положение, назначение','Описательные','Верхненабережная')
-add(X,'Прочее / неясно','Происхождение не установлено','Кирочный')
-SKIP={'русский мост','золотой мост','поселок поспелово','поселок подножье','поселок житкова'}
-
+# Сборка данных карты из репозитория: 02_data/streets_map.geojson + 02_data/vvmap_capes.geojson -> 05_code/data.json
+# Запуск: python3 05_code/prep.py (пути считаются от файла скрипта, cwd не важен).
+# Формулы проекции, упрощения (Douglas-Peucker) и кодирования SVG-пути сохранены 1:1 от исходного prep.py.
+# Классификация берётся из properties самой geojson: group->g, theme->c, subtheme->s,
+# confidence->u (u=1 если не «высокая»), note->o, part->pt, year->y, name->n, year_source->yd (без ссылок).
+import json,re,math,os,collections
+HERE=os.path.dirname(os.path.abspath(__file__))
+DATA_DIR=os.path.join(HERE,'..','02_data')
+fs=json.load(open(os.path.join(DATA_DIR,'streets_map.geojson'),encoding='utf-8'))['features']
+capes=json.load(open(os.path.join(DATA_DIR,'vvmap_capes.geojson'),encoding='utf-8'))['features']
 lat0=43.11; kx=math.cos(math.radians(lat0))*111320; ky=110574
 lon0,latT=131.70,43.32
 def proj(c): return ((c[0]-lon0)*kx/10.0,(latT-c[1])*ky/10.0)  # units = 10 m
@@ -67,14 +20,10 @@ def dp(pts,eps):
         if d>dm: i,dm=k,d
     if dm>eps: return dp(pts[:i+1],eps)[:-1]+dp(pts[i:],eps)
     return [a,b]
-out=[];miss=[]
+out=[]
 for f in fs:
-    p=f['properties']; k=norm(p['name'])
+    p=f['properties']
     if 'мост' in p['name'] or 'посёлок' in p['name'] or 'поселок' in p['name']: continue
-    r=mine.get(k); e=E.get(k)
-    if r: cls=dict(group=r['group'],cat=r['cat'],sub=r['sub'],conf=r['conf'],note=r['note'])
-    elif e: cls=dict(e,note='')
-    else: miss.append(p['name']); continue
     g=f['geometry']; lines=g['coordinates'] if g['type']=='MultiLineString' else [g['coordinates']]
     d=''
     for ln in lines:
@@ -86,8 +35,10 @@ for f in fs:
     y=p.get('year','')
     try: y=int(y)
     except: y=None
-    out.append(dict(n=p['name'],g=cls['group'],c=cls['cat'],s=cls['sub'],u=1 if cls['conf']!='высокая' else 0,o=cls['note'],y=y,yd=p.get('descr','') if not str(p.get('descr','')).startswith('http') and 'http' not in str(p.get('descr','')) else '',pt=p.get('part'),d=d))
-print('features',len(out),'miss',miss)
+    # yd: описание без ссылок — то же правило, что у старого скрипта для поля descr
+    ys=str(p.get('year_source') or '')
+    out.append(dict(n=p['name'],g=p['group'],c=p['theme'],s=p['subtheme'],u=1 if p['confidence']!='высокая' else 0,o=p.get('note',''),y=y,yd=ys if not ys.startswith('http') and 'http' not in ys else '',pt=p.get('part'),d=d))
+print('features',len(out))
 cp=[]
 for c in capes:
     x,y=proj(c['geometry']['coordinates']); cp.append([round(x),round(y),c['properties']['name']])
@@ -95,6 +46,7 @@ allx=[];ally=[]
 for o in out:
     for m in re.finditer(r'M(-?\d+) (-?\d+)',o['d']): allx.append(int(m.group(1)));ally.append(int(m.group(2)))
 print('bbox',min(allx),max(allx),min(ally),max(ally))
-json.dump(dict(f=out,capes=cp),open('/home/claude/map/data.json','w',encoding='utf-8'),ensure_ascii=False,separators=(',',':'))
-import os;print(os.path.getsize('/home/claude/map/data.json'))
+OUT=os.path.join(HERE,'data.json')
+json.dump(dict(f=out,capes=cp),open(OUT,'w',encoding='utf-8'),ensure_ascii=False,separators=(',',':'))
+print(os.path.getsize(OUT))
 print(collections.Counter(o['g'] for o in out)); print(sum(1 for o in out if o['y'] is None))
