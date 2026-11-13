@@ -26,6 +26,7 @@
   --g0:#f06a5f; --g1:#47b3d6; --g2:#6cbf5f; --g3:#f0b142; --g4:#a28ee0; --g5:#d0668c; --g6:#93a1a9;
   --focus:#7fb2ff; color-scheme:dark; }
 *,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
 body{height:100%;margin:0;background:var(--paper);color:var(--ink);font-family:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:15px;line-height:1.45}
 button{font:inherit;color:inherit}
