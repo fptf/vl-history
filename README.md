@@ -16,8 +16,12 @@
 | 02_data/vvmap_streets_years.csv, vvmap_capes.geojson | Исходные данные проекта vvmap (годы и источники, мысы) |
 | 02_data/ginfo_streets_raw.txt | Исходный список улиц с ginfo.ru |
 | 03_sources/sources.md | Источники и условия использования |
+| 03_sources/provenance.md | Карта происхождения данных: по каждому файлу — источник, дата получения, лицензия/условия и способ получения; отдельная секция «происхождение по полям» (год названия, геометрия, классификация, дома) |
+| 03_sources/raw/MANIFEST.md, raw/SHA256SUMS | Манифест сырых выгрузок с sha256 (проверка из корня репозитория: `sha256sum -c 03_sources/raw/SHA256SUMS`) |
 | 04_prototype/vladivostok-streets-map.html | Рабочий прототип карты: один файл, открыть в браузере (работает офлайн, шрифт подгружается из Google Fonts при наличии сети) |
 | 05_code/ | Скрипты: build.sh (сборка одной командой), classify.py (классификация), build.py (xlsx), houses_prep.py (слой домов ФКР), prep.py (сборка данных карты), assemble.py (подстановка данных в шаблон), map_template.html.tpl (шаблон карты без данных — не открывать в браузере), requirements.txt |
+
+Происхождение любого файла/поля описано в 03_sources/provenance.md; сырые выгрузки — с sha256 в 03_sources/raw/MANIFEST.md.
 
 ## Как пересобрать карту
 
