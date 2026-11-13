@@ -430,12 +430,19 @@ const hToggle=document.getElementById('htoggle'), hLegendEl=document.getElementB
       hCount=document.getElementById('hcount'), hGrad=document.getElementById('hgrad'),
       hy0=document.getElementById('hy0'), hy1=document.getElementById('hy1');
 let housesOn=false;
+let cumulYear=null;      // текущий год анимации роста (null — обычный режим: все дома)
+const H_LASTYEAR=D1+9;   // финал анимации «к 2029»: дома без года появляются здесь
 const hByStreet={};
 if(HD)HD.houses.forEach(h=>{if(h[5]!=null){const k=HD.street_names[h[5]];(hByStreet[k]=hByStreet[k]||[]).push(h);}});
 function decColor(i){
   const n=HD.decades.length, t=n>1?i/(n-1):0;
   const c0=[26,54,124], c1=[228,140,26]; // тёмно-синий -> янтарь (отличимо от категорийных цветов групп)
   return 'rgb('+Math.round(c0[0]+(c1[0]-c0[0])*t)+','+Math.round(c0[1]+(c1[1]-c0[1])*t)+','+Math.round(c0[2]+(c1[2]-c0[2])*t)+')';
+}
+function houseVisible(h){
+  if(cumulYear==null)return true;
+  if(h[6]==null)return cumulYear>=H_LASTYEAR; // дом без года — в самом конце анимации
+  return h[6]<=cumulYear;
 }
 function drawHouses(){
   const r=wrap.getBoundingClientRect();
@@ -447,6 +454,7 @@ function drawHouses(){
   if(!housesOn||!HD)return;
   const sx=r.width/view.w, sy=r.height/view.h, rad=2.7;
   for(const h of HD.houses){
+    if(!houseVisible(h))continue;
     const px=(h[0]-view.x)*sx, py=(h[1]-view.y)*sy;
     if(px<-rad||py<-rad||px>w+rad||py>hh+rad)continue;
     hctx.beginPath();
@@ -462,6 +470,7 @@ function houseAt(cx,cy){
   let best=-1, bd=49; // порог 7 px
   for(let i=0;i<HD.houses.length;i++){
     const h=HD.houses[i];
+    if(!houseVisible(h))continue;
     const dx=(h[0]-view.x)*sx-px, dy=(h[1]-view.y)*sy-py, d=dx*dx+dy*dy;
     if(d<bd){bd=d;best=i;}
   }
@@ -548,13 +557,15 @@ bars.addEventListener('focusin',e=>{const b=e.target.closest('.bar');if(b&&!play
 // cumulative "growth" animation
 let playing=false, timer=null;
 const playBtn=document.getElementById('play');
-function clearCumul(){if(!svg.classList.contains('cumul'))return;svg.classList.remove('cumul');paths.forEach(p=>p.classList.remove('future','fresh'));bars.classList.remove('dimmed');bars.querySelectorAll('.bar').forEach(b=>b.classList.remove('past'));stamp.textContent='';}
+function clearCumul(){if(!svg.classList.contains('cumul'))return;svg.classList.remove('cumul');paths.forEach(p=>p.classList.remove('future','fresh'));bars.classList.remove('dimmed');bars.querySelectorAll('.bar').forEach(b=>b.classList.remove('past'));stamp.textContent='';cumulYear=null;drawHouses();}
 function cumulTo(d){
   clearHL(); markDecade(null); svg.classList.add('cumul'); bars.classList.add('dimmed');
   F.forEach((f,i)=>{const fut=f.dec==null||f.dec>d;paths[i].classList.toggle('future',fut);paths[i].classList.toggle('fresh',f.dec===d);});
   bars.querySelectorAll('.bar').forEach(b=>{b.classList.toggle('past',+b.dataset.d<=d);b.classList.toggle('on',+b.dataset.d===d);});
   const total=F.filter(f=>f.dec!=null&&f.dec<=d).length;
   stamp.textContent=`${d}-е`; tlinfo.innerHTML=`<strong>к ${d+9} г.: ${total}</strong>новых за десятилетие: ${(byDec[d]||[]).length}`;
+  cumulYear=d+9; // дома «догоняют» decade-stamp: видны дома с годом постройки ≤ конца текущего десятилетия
+  drawHouses();
 }
 function stopPlay(){if(!playing)return;playing=false;clearInterval(timer);playBtn.textContent='▶ Показать рост';}
 playBtn.onclick=()=>{
