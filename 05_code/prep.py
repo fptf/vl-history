@@ -47,6 +47,18 @@ for o in out:
     for m in re.finditer(r'M(-?\d+) (-?\d+)',o['d']): allx.append(int(m.group(1)));ally.append(int(m.group(2)))
 print('bbox',min(allx),max(allx),min(ally),max(ally))
 OUT=os.path.join(HERE,'data.json')
-json.dump(dict(f=out,capes=cp),open(OUT,'w',encoding='utf-8'),ensure_ascii=False,separators=(',',':'))
+# Уникальные названия: одна улица может занимать несколько линий на карте
+# (например, Школьная — в двух частях города). Нормализация: lower, ё->е, «-»->пробел,
+# слова-типы отбрасываются, порядок слов не важен; если имя состоит только из
+# слов-типов («Набережная улица», «улица Тупик») — типы сохраняем, чтобы не слить разные улицы.
+STREET_TYPES={'улица','переулок','проспект','шоссе','набережная','проезд','тупик','бульвар','линия','микрорайон','поселок','город'}
+def name_key(n):
+    ws=n.lower().replace('ё','е').replace('-',' ').split()
+    rest=tuple(sorted(w for w in ws if w not in STREET_TYPES))
+    return rest if rest else tuple(sorted(ws))
+keys=[name_key(o['n']) for o in out]
+names_total=len(out); names_unique=len(set(keys)); names_multi=sum(1 for k,c in collections.Counter(keys).items() if c>1)
+print('names_total',names_total,'names_unique',names_unique,'names_multi',names_multi)
+json.dump(dict(f=out,capes=cp,names_total=names_total,names_unique=names_unique),open(OUT,'w',encoding='utf-8'),ensure_ascii=False,separators=(',',':'))
 print(os.path.getsize(OUT))
 print(collections.Counter(o['g'] for o in out)); print(sum(1 for o in out if o['y'] is None))

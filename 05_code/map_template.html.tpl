@@ -111,6 +111,8 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
 .timeline{grid-column:1;grid-row:2;background:var(--panel);border-top:1px solid var(--line);padding:10px 14px 12px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;align-items:end}
 .tl-side{display:flex;flex-direction:column;gap:6px;align-self:stretch;justify-content:space-between;width:156px;flex:none}
 #tlinfo{height:3.9em;overflow:hidden}
+.tl-note{margin:0;font-size:11px;line-height:1.3;color:var(--ink-2)}
+.tl-note b{color:var(--ink);font-weight:600}
 .tl-side p{margin:0;font-size:13px;color:var(--ink-2);line-height:1.3}
 .tl-side strong{display:block;color:var(--ink);font-size:15px}
 .play{border:1px solid var(--ink);background:var(--ink);color:var(--paper);border-radius:6px;padding:6px 10px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
@@ -157,6 +159,7 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
     <div class="tl-side">
       <p id="tlinfo"><strong>Годы названий</strong>Наведите или нажмите на десятилетие</p>
       <button class="play" id="play">▶ Показать рост</button>
+      <p class="tl-note" id="tlnote"></p>
     </div>
     <div class="bars" id="bars"></div>
   </section>
@@ -195,7 +198,7 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
     <footer class="src"><details><summary>Источники и пояснения</summary>
       <p>Геометрия улиц — © участники OpenStreetMap (ODbL), выгрузка и годы названий — открытый проект <a href="https://github.com/skirienko/vvmap" target="_blank" rel="noopener">vvmap</a>.</p>
       <p>Год — когда улица получила нынешнее название или впервые упомянута в документах. Пик 1920-х во многом даёт справочник 1924 года.</p>
-      <p>Тематическая классификация — составлена в нашем разговоре; около 10% названий помечены как требующие проверки.</p>
+      <p>Тематическая классификация — составлена в нашем разговоре; около 5% названий помечены как требующие проверки.</p>
     </details></footer>
   </aside>
 </div>
@@ -411,6 +414,7 @@ function syncPressed(){legend.querySelectorAll('[data-g]').forEach(b=>b.setAttri
 
 // ---------- timeline
 const bars=document.getElementById('bars'), tlinfo=document.getElementById('tlinfo'), stamp=document.getElementById('stamp');
+if(DATA.names_unique)document.getElementById('tlnote').innerHTML='Линии на карте; уникальных названий: <b>'+DATA.names_unique+'</b>';
 const decs=[];for(let d=D0;d<=D1;d+=10)decs.push(d);
 const maxN=Math.max(...decs.map(d=>(byDec[d]||[]).length));
 decs.forEach(d=>{

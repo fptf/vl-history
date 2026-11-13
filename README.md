@@ -27,12 +27,17 @@
 bash 05_code/build.sh
 ```
 
-Нужны python3 и openpyxl (`pip install -r 05_code/requirements.txt`). Внутри: classify.py строит rows.json из 02_data/ginfo_streets_raw.txt; build.py пишет 02_data/vladivostok_streets.xlsx; prep.py собирает 05_code/data.json из 02_data/streets_map.geojson и 02_data/vvmap_capes.geojson; затем data.json подставляется в map_template.html.tpl вместо `__DATA__`, результат сохраняется как 04_prototype/vladivostok-streets-map.html. Промежуточные rows.json и data.json в git не входят (в .gitignore).
+Нужны python3 и openpyxl (`pip install -r 05_code/requirements.txt`). Внутри: classify.py строит rows.json из 02_data/ginfo_streets_raw.txt; build.py пишет 02_data/vladivostok_streets.xlsx; prep.py собирает 05_code/data.json из 02_data/streets_map.geojson и 02_data/vvmap_capes.geojson; затем data.json подставляется в map_template.html.tpl вместо `__DATA__`, результат сохраняется как 04_prototype/vladivostok-streets-map.html. Промежуточные rows.json, data.json и houses.json в git не входят (в .gitignore).
 
 Открывать в браузере нужно только 04_prototype/vladivostok-streets-map.html, предварительно распаковав архив. В окне предпросмотра (Quick Look на Mac, панель просмотра Windows, мессенджеры, почта) JavaScript не выполняется, и карта будет пустой.
+
+## Репозиторий и git
+
+Проект ведётся в git: репозиторий создан 13.11.2026, работа идёт в ветке `main`, полную историю коммитов показывает `git log --oneline` (от первого коммита с данными исследования — через воспроизводимую сборку, слой домов ФКР и веб-исследование сомнительных названий — до правок классификации и полировки). В `.gitignore` — рабочие файлы сборки `rows.json`, `data.json`, `houses.json` (создаются скриптами при пересборке) и `.DS_Store`; всё остальное — исходные данные, скрипты, тексты и готовый HTML — хранится в репозитории. Актуальное состояние пересобирается одной командой `bash 05_code/build.sh` (см. выше).
 
 ## Важные оговорки
 
 - Год в данных — год нынешнего названия или первого упоминания, не год появления улицы. Пик 1920-х во многом даёт справочник 1924 г.
-- Классификация авторская; 85 названий помечены «нужна проверка».
+- На карте 821 линия, но уникальных названий 793: одна улица может занимать несколько линий (24 названия встречаются больше одного раза); таймлайн и счётчики карты считают линии, а не названия.
+- Классификация авторская; 45 названий помечены «нужна проверка».
 - Геометрия — © участники OpenStreetMap (ODbL). У репозитория vvmap нет явной лицензии: перед публикацией стоит уточнить условия у автора.
