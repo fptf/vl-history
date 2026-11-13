@@ -53,6 +53,13 @@ svg#map{width:100%;height:100%;display:block}
 .zoom button{width:36px;height:36px;border:1px solid var(--line);background:var(--panel);border-radius:6px;font-size:18px;line-height:1;cursor:pointer}
 .zoom button:hover{border-color:var(--ink-2)}
 .decade-stamp{position:absolute;left:16px;bottom:14px;font-weight:800;font-size:clamp(36px,7vw,72px);letter-spacing:-.02em;color:var(--ink);opacity:.18;pointer-events:none;line-height:1;z-index:1}
+#houses{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:none}
+.houses-ui .hrow{display:flex;align-items:center;gap:8px;font-size:14px}
+.houses-ui input{width:16px;height:16px;accent-color:var(--ink)}
+.houses-ui .hcount{color:var(--ink-2);font-size:13px}
+#hlegend{margin-top:8px;font-size:12px;color:var(--ink-2)}
+#hlegend .hgrad{height:10px;border-radius:3px;border:1px solid var(--line)}
+#hlegend .htags{display:flex;justify-content:space-between;margin-top:2px;font-variant-numeric:tabular-nums}
 aside{grid-column:2;grid-row:1 / span 2;background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:22px 22px 28px;display:flex;flex-direction:column;gap:20px}
 h1{font-size:22px;line-height:1.2;margin:0;font-weight:800;letter-spacing:-.01em}
 .lede{margin:6px 0 0;color:var(--ink-2);font-size:14px}
@@ -146,6 +153,7 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
     <svg id="map" role="img" aria-label="Карта улиц Владивостока, раскрашенная по тематикам названий">
       <g id="capes"></g><g id="streets"></g><g id="top"></g><g id="hit"></g>
     </svg>
+    <canvas id="houses" aria-hidden="true"></canvas>
     <div class="zoom">
       <button id="zin" aria-label="Приблизить">+</button>
       <button id="zout" aria-label="Отдалить">−</button>
@@ -187,6 +195,15 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
       <section>
         <h2>Группы названий</h2>
         <ul class="legend" id="legend"></ul>
+      </section>
+
+      <section class="houses-ui">
+        <h2><label class="hrow"><input type="checkbox" id="htoggle"> Дома (год постройки) <span class="hcount" id="hcount"></span></label></h2>
+        <div id="hlegend" hidden>
+          <div class="hgrad" id="hgrad"></div>
+          <div class="htags"><span id="hy0"></span><span id="hy1"></span></div>
+          <p class="meta">Дома (ФКР) — многоквартирные дома Владивостокского ГО (город + Трудовое + острова); цвет — десятилетие постройки, серый — год неизвестен. Клик по дому — адрес, год, материал, этажей. Координаты геокодированы автоматически, возможны неточности.</p>
+        </div>
       </section>
     </div>
 
@@ -254,6 +271,7 @@ function apply(){
   gCapes.querySelectorAll('circle').forEach(c=>c.setAttribute('r',2.2/scale));
   gCapes.querySelectorAll('text').forEach(t=>{t.style.fontSize=(11/scale)+'px';t.style.strokeWidth=(3/scale)+'px';});
   svg.classList.toggle('capes-off',scale<0.55);
+  drawHouses();
 }
 function toSvg(px,py){const r=wrap.getBoundingClientRect();return{x:view.x+(px-r.left)/r.width*view.w,y:view.y+(py-r.top)/r.height*view.h};}
 function zoomAt(k,px,py){
@@ -293,8 +311,12 @@ function endPtr(e){
   ptrs.delete(e.pointerId); if(ptrs.size<2)pinch=null;
   if(ptrs.size===0){wrap.classList.remove('drag');dragStart=null;}
   if(wasTap&&e.type==='pointerup'){
-    const t=document.elementFromPoint(e.clientX,e.clientY);
-    if(t&&t.parentNode===gHit){select(+t.dataset.i,false);} else if(!e.target.closest('.zoom')) clearPin();
+    const hi=houseAt(e.clientX,e.clientY);
+    if(hi>=0){showHouse(hi,e);}
+    else{
+      const t=document.elementFromPoint(e.clientX,e.clientY);
+      if(t&&t.parentNode===gHit){select(+t.dataset.i,false);} else if(!e.target.closest('.zoom')) clearPin();
+    }
   }
 }
 wrap.addEventListener('pointerup',endPtr);wrap.addEventListener('pointercancel',endPtr);
@@ -371,10 +393,17 @@ function renderDetails(i,rel){
   const names=[...new Set(rel.map(j=>F[j].n))].filter(n=>n!==f.n).sort((a,b)=>splitName(a).name.localeCompare(splitName(b).name,'ru'));
   const shown=names.slice(0,16);
   const yr=f.y!=null?`<b>${f.y}</b>${f.yd?' — '+esc(f.yd):''}`:'год неизвестен';
+  let hSum='';
+  if(HD&&housesOn){const hs=hByStreet[f.n];
+    if(hs&&hs.length){const ys=hs.map(h=>h[6]).filter(y=>y!=null);
+      const mc={};hs.forEach(h=>{if(h[3]>=0){const m=HD.materials[h[3]];mc[m]=(mc[m]||0)+1;}});
+      const top=Object.entries(mc).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([m,c])=>esc(m)+' — '+c).join(', ');
+      hSum='<p class="meta">Дома ФКР на этой улице: <b>'+hs.length+'</b>'+(ys.length?', постройка <b>'+Math.min(...ys)+'–'+Math.max(...ys)+'</b>':'')+(top?', материалы: '+top:'')+'.</p>';}}
   details.innerHTML=`
     <p class="crumbs"><span class="sw" style="background:var(--g${f.gi})"></span>${esc(f.g)} › ${esc(f.c)} › ${esc(f.s)}</p>
     ${f.o?`<p class="meta">${esc(f.o)}</p>`:''}
     <p class="meta">Название: ${yr}</p>
+    ${hSum}
     ${f.u?'<p class="warn">Тематика определена предположительно, нужна проверка.</p>':''}
     <div class="rel-head"><p>${names.length} ${plural(names.length,'улица','улицы','улиц')} той же ${relLabel[relMode]}</p></div>
     <div class="chips">${shown.map(n=>`<button data-n="${esc(n)}">${esc(splitName(n).name)}</button>`).join('')}${names.length>shown.length?`<span class="more">и ещё ${names.length-shown.length}</span>`:''}</div>`;
@@ -393,6 +422,80 @@ details.addEventListener('click',e=>{
   const c=e.target.closest('[data-n]'); if(c){select(byName[c.dataset.n][0],true);}
 });
 let curHover=null; gHit.addEventListener('pointerover',e=>{curHover=+e.target.dataset.i});
+
+// ---------- houses layer (ФКР, V4)
+const HD=DATA.houses||null;
+const hcv=document.getElementById('houses'), hctx=hcv.getContext('2d');
+const hToggle=document.getElementById('htoggle'), hLegendEl=document.getElementById('hlegend'),
+      hCount=document.getElementById('hcount'), hGrad=document.getElementById('hgrad'),
+      hy0=document.getElementById('hy0'), hy1=document.getElementById('hy1');
+let housesOn=false;
+const hByStreet={};
+if(HD)HD.houses.forEach(h=>{if(h[5]!=null){const k=HD.street_names[h[5]];(hByStreet[k]=hByStreet[k]||[]).push(h);}});
+function decColor(i){
+  const n=HD.decades.length, t=n>1?i/(n-1):0;
+  const c0=[26,54,124], c1=[228,140,26]; // тёмно-синий -> янтарь (отличимо от категорийных цветов групп)
+  return 'rgb('+Math.round(c0[0]+(c1[0]-c0[0])*t)+','+Math.round(c0[1]+(c1[1]-c0[1])*t)+','+Math.round(c0[2]+(c1[2]-c0[2])*t)+')';
+}
+function drawHouses(){
+  const r=wrap.getBoundingClientRect();
+  const w=Math.max(1,Math.round(r.width)), hh=Math.max(1,Math.round(r.height));
+  const dpr=window.devicePixelRatio||1;
+  if(hcv.width!==Math.round(w*dpr)||hcv.height!==Math.round(hh*dpr)){hcv.width=Math.round(w*dpr);hcv.height=Math.round(hh*dpr);}
+  hctx.setTransform(dpr,0,0,dpr,0,0);
+  hctx.clearRect(0,0,w,hh);
+  if(!housesOn||!HD)return;
+  const sx=r.width/view.w, sy=r.height/view.h, rad=2.7;
+  for(const h of HD.houses){
+    const px=(h[0]-view.x)*sx, py=(h[1]-view.y)*sy;
+    if(px<-rad||py<-rad||px>w+rad||py>hh+rad)continue;
+    hctx.beginPath();
+    hctx.fillStyle=h[2]<0?'#9a9a9a':decColor(h[2]);
+    hctx.arc(px,py,rad,0,6.2832);
+    hctx.fill();
+  }
+}
+function houseAt(cx,cy){
+  if(!housesOn||!HD)return -1;
+  const r=wrap.getBoundingClientRect(), sx=r.width/view.w, sy=r.height/view.h;
+  const px=cx-r.left, py=cy-r.top;
+  let best=-1, bd=49; // порог 7 px
+  for(let i=0;i<HD.houses.length;i++){
+    const h=HD.houses[i];
+    const dx=(h[0]-view.x)*sx-px, dy=(h[1]-view.y)*sy-py, d=dx*dx+dy*dy;
+    if(d<bd){bd=d;best=i;}
+  }
+  return best;
+}
+function showHouse(i,e){
+  const h=HD.houses[i];
+  const year=h[6]!=null?h[6]:(h[2]>=0?HD.decades[h[2]]+'-е':'—');
+  const mat=h[3]>=0?HD.materials[h[3]]:'материал не указан';
+  const fl=h[4]>0?h[4]:null;
+  plate.classList.remove('empty'); pkind.textContent='дом (ФКР)';
+  pname.textContent=h[7]||(h[5]!=null?HD.street_names[h[5]]:'адрес неизвестен');
+  details.innerHTML='<p class="crumbs"><span class="sw" style="background:'+(h[2]<0?'#9a9a9a':decColor(h[2]))+'"></span>Слой «Дома (год постройки)»</p>'
+    +'<p class="meta">Год постройки: <b>'+year+(h[2]>=0?' ('+HD.decades[h[2]]+'-е)':'')+'</b></p>'
+    +'<p class="meta">Материал стен: <b>'+esc(mat)+'</b></p>'
+    +(fl?'<p class="meta">Этажей: <b>'+fl+'</b></p>':'')
+    +(h[5]!=null?'<p class="meta">Улица карты: <b>'+esc(HD.street_names[h[5]])+'</b></p>'
+                :'<p class="warn">Дом не сопоставлен с улицами карты (нет связи по названию).</p>');
+  showTip(e,(h[7]||'')+' · '+year+' · '+mat+(fl?' · '+fl+' эт.':''));
+}
+if(HD){
+  hCount.textContent=HD.houses.length+' домов';
+  hToggle.addEventListener('change',()=>{
+    housesOn=hToggle.checked;
+    hLegendEl.hidden=!housesOn;
+    hcv.style.display=housesOn?'block':'none';
+    if(housesOn){
+      const n=HD.decades.length;
+      hGrad.style.background='linear-gradient(90deg,'+decColor(0)+','+decColor(Math.floor(n/2))+','+decColor(n-1)+')';
+      hy0.textContent=HD.decades[0]+'-е'; hy1.textContent=HD.decades[n-1]+'-е';
+      drawHouses();
+    } else { hideTip(); restore(); }
+  });
+} else { hToggle.disabled=true; hCount.textContent='нет данных'; }
 
 // ---------- legend
 const legend=document.getElementById('legend'); let legendPinned=null;

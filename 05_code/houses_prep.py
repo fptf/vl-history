@@ -13,9 +13,11 @@
 #    «4-я Восточная» не важен). Нет совпадения -> street_name_idx = null.
 # 3) houses.json: {"decades":[...начальные годы десятилетий...], "materials":[...],
 #    "street_names":[...имена из карты...],
-#    "houses":[[x,y,decade_idx,mat_idx,floors,street_name_idx|null],...]}
+#    "houses":[[x,y,decade_idx,mat_idx,floors,street_name_idx|null,year|null,"Полный адрес (ФКР)"],...]}
 #    Проекция и единицы как в prep.py (x,y в единицах 10 м, округлены до целых).
 #    Соглашения: decade_idx=-1 (год неизвестен), mat_idx=-1 (материал не указан), floors=0 (этажи не указаны).
+#    V4 (append-only, не ломая индексы 0-5): [6] = год постройки (int|null) точнее десятилетия,
+#    [7] = «Полный адрес (ФКР)» для тултипа дома.
 import csv, json, math, os, re, collections
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -115,7 +117,8 @@ for r in go:
     sn = None
     if k and k in street_by_key and k not in ambiguous:
         sn = next(iter(street_by_key[k]))
-    houses.append(dict(x=round(x), y=round(y), year=year, mat=mat, floors=floors, street=sn))
+    houses.append(dict(x=round(x), y=round(y), year=year, mat=mat, floors=floors, street=sn,
+                       addr=(r['Полный адрес (ФКР)'] or '').strip()))
 
 # --- таблицы-справочники ---
 years = sorted(h['year'] for h in houses if h['year'] is not None)
@@ -137,7 +140,9 @@ out = dict(
              dec_idx[h['year'] // 10 * 10] if h['year'] is not None else -1,
              mat_idx[h['mat']] if h['mat'] in mat_idx else -1,
              h['floors'],
-             st_idx[h['street']] if h['street'] is not None else None] for h in houses],
+             st_idx[h['street']] if h['street'] is not None else None,
+             h['year'],
+             h['addr']] for h in houses],
 )
 OUT_PATH = os.path.join(HERE, 'houses.json')
 with open(OUT_PATH, 'w', encoding='utf-8') as f:

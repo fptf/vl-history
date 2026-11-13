@@ -39,6 +39,10 @@ for f in fs:
     ys=str(p.get('year_source') or '')
     out.append(dict(n=p['name'],g=p['group'],c=p['theme'],s=p['subtheme'],u=1 if p['confidence']!='высокая' else 0,o=p.get('note',''),y=y,yd=ys if not ys.startswith('http') and 'http' not in ys else '',pt=p.get('part'),d=d))
 print('features',len(out))
+# V4: дома ФКР -> сегмент 'houses' (готовит houses_prep.py; если файла нет — дома не вливаются)
+H_IN=os.path.join(HERE,'houses.json')
+houses_seg=json.load(open(H_IN,encoding='utf-8')) if os.path.exists(H_IN) else None
+print('houses', 'yes' if houses_seg else 'NO')
 cp=[]
 for c in capes:
     x,y=proj(c['geometry']['coordinates']); cp.append([round(x),round(y),c['properties']['name']])
@@ -59,6 +63,6 @@ def name_key(n):
 keys=[name_key(o['n']) for o in out]
 names_total=len(out); names_unique=len(set(keys)); names_multi=sum(1 for k,c in collections.Counter(keys).items() if c>1)
 print('names_total',names_total,'names_unique',names_unique,'names_multi',names_multi)
-json.dump(dict(f=out,capes=cp,names_total=names_total,names_unique=names_unique),open(OUT,'w',encoding='utf-8'),ensure_ascii=False,separators=(',',':'))
+json.dump(dict(f=out,capes=cp,names_total=names_total,names_unique=names_unique,houses=houses_seg),open(OUT,'w',encoding='utf-8'),ensure_ascii=False,separators=(',',':'))
 print(os.path.getsize(OUT))
 print(collections.Counter(o['g'] for o in out)); print(sum(1 for o in out if o['y'] is None))

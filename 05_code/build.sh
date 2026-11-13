@@ -6,5 +6,6 @@ set -e
 cd "$(dirname "$0")"
 python3 classify.py    # 02_data/ginfo_streets_raw.txt -> 05_code/rows.json
 python3 build.py       # rows.json -> 02_data/vladivostok_streets.xlsx
-python3 prep.py        # 02_data/streets_map.geojson + vvmap_capes.geojson -> 05_code/data.json
+python3 houses_prep.py # buildings/ФКР_дома_с_координатами.csv -> 05_code/houses.json
+python3 prep.py        # 02_data/streets_map.geojson + vvmap_capes.geojson + houses.json -> 05_code/data.json
 python3 assemble.py    # data.json -> map_template.html.tpl -> 04_prototype/vladivostok-streets-map.html
