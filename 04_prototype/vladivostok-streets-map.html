@@ -60,6 +60,12 @@ svg#map{width:100%;height:100%;display:block}
 #hlegend{margin-top:8px;font-size:12px;color:var(--ink-2)}
 #hlegend .hgrad{height:10px;border-radius:3px;border:1px solid var(--line)}
 #hlegend .htags{display:flex;justify-content:space-between;margin-top:2px;font-variant-numeric:tabular-nums}
+.houses-ui .hcolor{margin-top:10px;font-size:13px;flex-wrap:wrap;row-gap:3px}
+.houses-ui .hcolor>span{color:var(--ink-2)}
+.houses-ui .hcolor label{display:inline-flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap}
+#hleg-street{margin-top:8px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 14px}
+#hleg-street .hsrow{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
+#hleg-street .hsrow .sw{width:10px;height:10px;border-radius:2px;flex:none}
 aside{grid-column:2;grid-row:1 / span 2;background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:22px 22px 28px;display:flex;flex-direction:column;gap:20px}
 h1{font-size:22px;line-height:1.2;margin:0;font-weight:800;letter-spacing:-.01em}
 .lede{margin:6px 0 0;color:var(--ink-2);font-size:14px}
@@ -200,9 +206,17 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
       <section class="houses-ui">
         <h2><label class="hrow"><input type="checkbox" id="htoggle"> Дома (год постройки) <span class="hcount" id="hcount"></span></label></h2>
         <div id="hlegend" hidden>
-          <div class="hgrad" id="hgrad"></div>
-          <div class="htags"><span id="hy0"></span><span id="hy1"></span></div>
-          <p class="meta">Дома (ФКР) — многоквартирные дома Владивостокского ГО (город + Трудовое + острова); цвет — десятилетие постройки, серый — год неизвестен. Клик по дому — адрес, год, материал, этажей. Координаты геокодированы автоматически, возможны неточности.</p>
+          <div class="hrow hcolor" role="radiogroup" aria-label="Цвет домов">
+            <span>Цвет домов:</span>
+            <label><input type="radio" name="hcolormode" value="year" checked> по году</label>
+            <label><input type="radio" name="hcolormode" value="street"> по улице</label>
+          </div>
+          <div id="hleg-year">
+            <div class="hgrad" id="hgrad"></div>
+            <div class="htags"><span id="hy0"></span><span id="hy1"></span></div>
+          </div>
+          <div id="hleg-street" hidden></div>
+          <p class="meta">Дома (ФКР) — многоквартирные дома Владивостокского ГО (город + Трудовое + острова); цвет — десятилетие постройки или группа улицы (переключатель выше), серый — год неизвестен / дом не привязан к улицам карты. Клик по дому — адрес, год, материал, этажей. Координаты геокодированы автоматически, возможны неточности.</p>
         </div>
       </section>
     </div>
@@ -428,12 +442,26 @@ const HD=DATA.houses||null;
 const hcv=document.getElementById('houses'), hctx=hcv.getContext('2d');
 const hToggle=document.getElementById('htoggle'), hLegendEl=document.getElementById('hlegend'),
       hCount=document.getElementById('hcount'), hGrad=document.getElementById('hgrad'),
-      hy0=document.getElementById('hy0'), hy1=document.getElementById('hy1');
+      hy0=document.getElementById('hy0'), hy1=document.getElementById('hy1'),
+      hLegYear=document.getElementById('hleg-year'), hLegStreet=document.getElementById('hleg-street');
 let housesOn=false;
 let cumulYear=null;      // текущий год анимации роста (null — обычный режим: все дома)
 const H_LASTYEAR=D1+9;   // финал анимации «к 2029»: дома без года появляются здесь
 const hByStreet={};
 if(HD)HD.houses.forEach(h=>{if(h[5]!=null){const k=HD.street_names[h[5]];(hByStreet[k]=hByStreet[k]||[]).push(h);}});
+let hColorMode='year'; // 'year' — десятилетие постройки, 'street' — группа улицы
+const hStreetGi=HD?HD.street_names.map(n=>{const ids=byName[n];return ids&&ids.length?F[ids[0]].gi:-1;}):[];
+function giPalette(){
+  const cs=getComputedStyle(document.documentElement);
+  return GROUPS.map((_,gi)=>(cs.getPropertyValue('--g'+gi)||'').trim()||'#9a9a9a');
+}
+function houseColor(h,pal){
+  if(hColorMode==='street'){
+    const gi=h[5]!=null?hStreetGi[h[5]]:-1;
+    return gi>=0?pal[gi]:'#9a9a9a'; // без привязки к улицам карты — серый
+  }
+  return h[2]<0?'#9a9a9a':decColor(h[2]);
+}
 function decColor(i){
   const n=HD.decades.length, t=n>1?i/(n-1):0;
   const c0=[26,54,124], c1=[228,140,26]; // тёмно-синий -> янтарь (отличимо от категорийных цветов групп)
@@ -453,12 +481,13 @@ function drawHouses(){
   hctx.clearRect(0,0,w,hh);
   if(!housesOn||!HD)return;
   const sx=r.width/view.w, sy=r.height/view.h, rad=2.7;
+  const pal=hColorMode==='street'?giPalette():null;
   for(const h of HD.houses){
     if(!houseVisible(h))continue;
     const px=(h[0]-view.x)*sx, py=(h[1]-view.y)*sy;
     if(px<-rad||py<-rad||px>w+rad||py>hh+rad)continue;
     hctx.beginPath();
-    hctx.fillStyle=h[2]<0?'#9a9a9a':decColor(h[2]);
+    hctx.fillStyle=houseColor(h,pal);
     hctx.arc(px,py,rad,0,6.2832);
     hctx.fill();
   }
@@ -483,7 +512,7 @@ function showHouse(i,e){
   const fl=h[4]>0?h[4]:null;
   plate.classList.remove('empty'); pkind.textContent='дом (ФКР)';
   pname.textContent=h[7]||(h[5]!=null?HD.street_names[h[5]]:'адрес неизвестен');
-  details.innerHTML='<p class="crumbs"><span class="sw" style="background:'+(h[2]<0?'#9a9a9a':decColor(h[2]))+'"></span>Слой «Дома (год постройки)»</p>'
+  details.innerHTML='<p class="crumbs"><span class="sw" style="background:'+houseColor(h,giPalette())+'"></span>Слой «Дома (год постройки)»</p>'
     +'<p class="meta">Год постройки: <b>'+year+(h[2]>=0?' ('+HD.decades[h[2]]+'-е)':'')+'</b></p>'
     +'<p class="meta">Материал стен: <b>'+esc(mat)+'</b></p>'
     +(fl?'<p class="meta">Этажей: <b>'+fl+'</b></p>':'')
@@ -491,8 +520,20 @@ function showHouse(i,e){
                 :'<p class="warn">Дом не сопоставлен с улицами карты (нет связи по названию).</p>');
   showTip(e,(h[7]||'')+' · '+year+' · '+mat+(fl?' · '+fl+' эт.':''));
 }
+function syncHLegend(){
+  hLegYear.hidden=hColorMode!=='year';
+  hLegStreet.hidden=hColorMode!=='street';
+}
 if(HD){
   hCount.textContent=HD.houses.length+' домов';
+  { // легенда режима «по улице»: групповые цвета + счётчик домов, серый — без улицы карты
+    const cnt=Array(GROUPS.length).fill(0); let un=0;
+    HD.houses.forEach(h=>{const gi=h[5]!=null?hStreetGi[h[5]]:-1;if(gi>=0)cnt[gi]++;else un++;});
+    let html='';
+    GROUPS.forEach((g,gi)=>{if(!cnt[gi])return;html+='<div class="hsrow"><span class="sw" style="background:var(--g'+gi+')"></span>'+esc(GSHORT[gi])+' — '+cnt[gi]+'</div>';});
+    html+='<div class="hsrow"><span class="sw" style="background:#9a9a9a"></span>без улицы карты — '+un+'</div>';
+    hLegStreet.innerHTML=html;
+  }
   hToggle.addEventListener('change',()=>{
     housesOn=hToggle.checked;
     hLegendEl.hidden=!housesOn;
@@ -501,9 +542,16 @@ if(HD){
       const n=HD.decades.length;
       hGrad.style.background='linear-gradient(90deg,'+decColor(0)+','+decColor(Math.floor(n/2))+','+decColor(n-1)+')';
       hy0.textContent=HD.decades[0]+'-е'; hy1.textContent=HD.decades[n-1]+'-е';
+      syncHLegend();
       drawHouses();
     } else { hideTip(); restore(); }
   });
+  document.querySelectorAll('input[name="hcolormode"]').forEach(r=>r.addEventListener('change',()=>{
+    if(!r.checked)return;
+    hColorMode=r.value; syncHLegend(); drawHouses();
+  }));
+  // смена системной темы — перекрасить уже нарисованные дома
+  if(window.matchMedia)matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{if(housesOn)drawHouses();});
 } else { hToggle.disabled=true; hCount.textContent='нет данных'; }
 
 // ---------- legend
