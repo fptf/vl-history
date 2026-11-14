@@ -6,3 +6,4 @@ houses.json
 # Слой воды (water_prep.py)
 water.json
 .ssh/
+.DS_Store
