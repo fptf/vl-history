@@ -604,24 +604,45 @@ bars.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDe
 bars.addEventListener('focusin',e=>{const b=e.target.closest('.bar');if(b&&!playing)showDecade(+b.dataset.d);});
 
 // cumulative "growth" animation
-let playing=false, timer=null;
+let playing=false, raf=null;
 const playBtn=document.getElementById('play');
+const SLOT=900; // мс на десятилетие — как в V6/V9
 function clearCumul(){if(!svg.classList.contains('cumul'))return;svg.classList.remove('cumul');paths.forEach(p=>p.classList.remove('future','fresh'));bars.classList.remove('dimmed');bars.querySelectorAll('.bar').forEach(b=>b.classList.remove('past'));stamp.textContent='';cumulYear=null;drawHouses();}
-function cumulTo(d){
+function cumulState(d){ // улицы/бары/штамп — раз на границе десятилетия, поведение V6/V9
   clearHL(); markDecade(null); svg.classList.add('cumul'); bars.classList.add('dimmed');
   F.forEach((f,i)=>{const fut=f.dec==null||f.dec>d;paths[i].classList.toggle('future',fut);paths[i].classList.toggle('fresh',f.dec===d);});
   bars.querySelectorAll('.bar').forEach(b=>{b.classList.toggle('past',+b.dataset.d<=d);b.classList.toggle('on',+b.dataset.d===d);});
-  const total=F.filter(f=>f.dec!=null&&f.dec<=d).length;
-  stamp.textContent=`${d}-е`; tlinfo.innerHTML=`<strong>к ${d+9} г.: ${total}</strong>новых за десятилетие: ${(byDec[d]||[]).length}`;
-  cumulYear=d+9; // дома «догоняют» decade-stamp: видны дома с годом постройки ≤ конца текущего десятилетия
+  stamp.textContent=`${d}-е`;
+}
+let cumulYy=-1; // точный год счётчика, уже показанный на текущем слоте
+function cumulTick(d,cy){ // тик внутри десятилетия (V11): cumulYear интерполируется непрерывно от d к d+9
+  cumulYear=cy; // дома «выезжают» по годам постройки: видны дома с годом ≤ cy (годы целые); дом без года — только при cy≥H_LASTYEAR
+  const y=Math.floor(cy);
+  if(y!==cumulYy){ // счётчики — вживую вместе с cumulYear (по точному году, не раз в десятилетие)
+    cumulYy=y;
+    const total=F.filter(f=>f.y!=null&&f.y<=cy).length; // на границе десятилетия совпадает со счётом по f.dec (dec выводится из y)
+    tlinfo.innerHTML=`<strong>к ${y} г.: ${total}</strong>новых за десятилетие: ${F.filter(f=>f.y!=null&&f.y>=d&&f.y<=cy).length}`;
+  }
   drawHouses();
 }
-function stopPlay(){if(!playing)return;playing=false;clearInterval(timer);playBtn.textContent='▶ Показать рост';}
+function stopPlay(){if(!playing)return;playing=false;if(raf)cancelAnimationFrame(raf);playBtn.textContent='▶ Показать рост';}
 playBtn.onclick=()=>{
   if(playing){stopPlay();return;}
   pinned=null;legendPinned=null;decPinned=null;syncPressed();renderEmpty();
-  playing=true;playBtn.textContent='❚❚ Пауза';let k=0;cumulTo(decs[k]);
-  timer=setInterval(()=>{k++;if(k>=decs.length){stopPlay();setTimeout(()=>{if(!playing){clearCumul();tlinfo.innerHTML='<strong>Годы названий</strong>Наведите или нажмите на десятилетие';restore();}},1800);return;}cumulTo(decs[k]);},900);
+  playing=true;playBtn.textContent='❚❚ Пауза';
+  let k=0,t0=performance.now();
+  cumulYy=-1;cumulState(decs[k]);cumulTick(decs[k],decs[k]);
+  const step=()=>{
+    if(!playing)return;
+    const d=decs[k], p=Math.min(1,(performance.now()-t0)/SLOT);
+    cumulTick(d,d+9*p); // плавный рост внутри десятилетия; длительность слота прежняя
+    if(p<1){raf=requestAnimationFrame(step);return;}
+    k++;
+    if(k>=decs.length){stopPlay();setTimeout(()=>{if(!playing){clearCumul();tlinfo.innerHTML='<strong>Годы названий</strong>Наведите или нажмите на десятилетие';restore();}},1800);return;}
+    t0=performance.now();cumulYy=-1;cumulState(decs[k]);cumulTick(decs[k],decs[k]);
+    raf=requestAnimationFrame(step);
+  };
+  raf=requestAnimationFrame(step);
 };
 
 // ---------- search
