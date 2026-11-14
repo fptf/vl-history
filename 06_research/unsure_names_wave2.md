@@ -1,6 +1,6 @@
 # Волна 2: доисследование 45 названий «нужна проверка»
 
-Дата: 14.11.2026 (ВЛК). Коммит-база: 445e5bc (V7). Вердикты: `06_research/findings2.jsonl` (45 позиций).
+Дата: 14.11.2026 (ВЛК). Коммит-база: a6ad156 (V7). Вердикты: `06_research/findings2.jsonl` (45 позиций).
 
 Источники волны 2: ru.wikipedia.org (API, extracts), Ruwiki (ruwiki.ru), Wikimapia (только как UGC-указатель),
 поиск (kfss.ru через web.archive.org, vladnews, primamedia, vostokmedia, to-ros.info, gazetaeao.ru, patrokl.info, vlparki.ru, rgakfd.ru, generals.dk, 2gis и др.).

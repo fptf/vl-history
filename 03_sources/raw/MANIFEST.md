@@ -45,3 +45,5 @@ c3d70632664d981cee23b3248ac38012e8b7830cc73bad0f1ffb31096f26302b  03_sources/raw
 
 sha256 этого файла (посчитан по содержимому БЕЗ следующей строки):
 `7dc2013b55ba121a06f7582755abe3c62e82e32ab8e94921779c54a6c86e5baf`
+
+- `02_data/osm_coastline_raw.json` — сырой ответ Overpass (natural=coastline, bbox 42.60–43.60/131.30–132.60, 14.11.2026), sha256 `a20213bd4467ec0b…`; добавлен V15 (вода/берег).
