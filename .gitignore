@@ -11,3 +11,4 @@ rows.json
 data.json
 # Слой домов (houses_prep.py)
 houses.json
+.ssh/
