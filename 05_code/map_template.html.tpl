@@ -10,6 +10,7 @@
 <style>
 :root{
   --paper:#e7edf0; --panel:#f6f8f9; --ink:#14232d; --ink-2:#4b5b66; --line:#c9d3d9;
+  --water:#c7dcea;
   --street:#9aa8b1; --street-dim:#cdd6db; --halo:#ffffff; --plate:#1b4d8c; --plate-ink:#ffffff;
   --g0:#d64545; --g1:#1f7fa0; --g2:#3f8f3a; --g3:#d18b17; --g4:#7a63b8; --g5:#8e2b4c; --g6:#7e8a91;
   --focus:#1b4d8c; color-scheme:light;
@@ -17,11 +18,13 @@
 }
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
   --paper:#0f1d27; --panel:#142632; --ink:#e4ecf0; --ink-2:#9db0bb; --line:#26404f;
+  --water:#13293c;
   --street:#4c6575; --street-dim:#22394a; --halo:#0f1d27; --plate:#2a64ad; --plate-ink:#ffffff;
   --g0:#f06a5f; --g1:#47b3d6; --g2:#6cbf5f; --g3:#f0b142; --g4:#a28ee0; --g5:#d0668c; --g6:#93a1a9;
   --focus:#7fb2ff; color-scheme:dark; }}
 :root[data-theme="dark"]{
   --paper:#0f1d27; --panel:#142632; --ink:#e4ecf0; --ink-2:#9db0bb; --line:#26404f;
+  --water:#13293c;
   --street:#4c6575; --street-dim:#22394a; --halo:#0f1d27; --plate:#2a64ad; --plate-ink:#ffffff;
   --g0:#f06a5f; --g1:#47b3d6; --g2:#6cbf5f; --g3:#f0b142; --g4:#a28ee0; --g5:#d0668c; --g6:#93a1a9;
   --focus:#7fb2ff; color-scheme:dark; }
@@ -35,6 +38,8 @@ button:focus-visible,input:focus-visible,.bar:focus-visible{outline:2px solid va
 .mapwrap{position:relative;grid-column:1;grid-row:1;overflow:hidden;touch-action:none;cursor:grab}
 .mapwrap.drag{cursor:grabbing}
 svg#map{width:100%;height:100%;display:block}
+#water{pointer-events:none}
+#water path{fill:var(--water)}
 .s{fill:none;stroke:var(--street);stroke-width:1.15;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round;transition:stroke .12s,opacity .12s}
 .g0{stroke:var(--g0)}.g1{stroke:var(--g1)}.g2{stroke:var(--g2)}.g3{stroke:var(--g3)}.g4{stroke:var(--g4)}.g5{stroke:var(--g5)}.g6{stroke:var(--g6)}
 #streets .s{opacity:.72}
@@ -158,7 +163,7 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
 <div class="app">
   <div class="mapwrap" id="wrap">
     <svg id="map" role="img" aria-label="Карта улиц Владивостока, раскрашенная по тематикам названий">
-      <g id="capes"></g><g id="streets"></g><g id="top"></g><g id="hit"></g>
+      <g id="water" aria-hidden="true"></g><g id="capes"></g><g id="streets"></g><g id="top"></g><g id="hit"></g>
     </svg>
     <canvas id="houses" aria-hidden="true"></canvas>
     <div class="zoom">
@@ -258,6 +263,13 @@ F.forEach((f,i)=>{
 const keyOf=(f,m)=>m==='group'?f.g:m==='cat'?f.g+'|'+f.c:f.g+'|'+f.c+'|'+f.s;
 
 // ---------- draw
+// V15: вода (береговая линия OSM) — самый нижний слой; путь с fill-rule=evenodd:
+// подпуть-прямоугольник + контуры суши, вода = нечётная глубина вложенности
+if(DATA.water){
+  const wp=document.createElementNS(NS,'path');
+  wp.setAttribute('d',DATA.water.d);wp.setAttribute('fill-rule','evenodd');
+  document.getElementById('water').appendChild(wp);
+}
 const paths=[], hits=[];
 F.forEach((f,i)=>{
   const p=document.createElementNS(NS,'path');p.setAttribute('d',f.d);p.setAttribute('class','s g'+f.gi);gStreets.appendChild(p);paths.push(p);
