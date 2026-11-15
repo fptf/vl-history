@@ -7,4 +7,4 @@ houses.json
 water.json
 .ssh/
 .DS_Store
-<private-workdir>/
+# Приватные рабочие материалы (диалоги, ключи) хранятся вне репо
