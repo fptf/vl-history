@@ -41,10 +41,10 @@ button:focus-visible,input:focus-visible,.bar:focus-visible{outline:2px solid va
 .link{border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--ink);text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px;cursor:pointer}
 .link:hover{text-decoration-color:currentColor}
 .meta .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 6px 0 2px;vertical-align:0}
-svg#map{width:100%;height:100%;display:block}
+svg#map{position:relative;width:100%;height:100%;display:block} /* над холстом подложки зданий */
 #water{pointer-events:none}
 #water path{fill:var(--water)}
-.s{fill:none;stroke:var(--street);stroke-width:1.15;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round;transition:stroke .12s,opacity .12s}
+.s{fill:none;stroke:var(--street);stroke-width:1.6;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round;transition:stroke .12s,opacity .12s}
 .g0{stroke:var(--g0)}.g1{stroke:var(--g1)}.g2{stroke:var(--g2)}.g3{stroke:var(--g3)}.g4{stroke:var(--g4)}.g5{stroke:var(--g5)}.g6{stroke:var(--g6)}
 #streets .s{opacity:.72}
 .focus #streets .s{stroke:var(--street-dim);opacity:1}
@@ -63,7 +63,7 @@ svg#map{width:100%;height:100%;display:block}
 .zoom button{width:36px;height:36px;border:1px solid var(--line);background:var(--panel);border-radius:6px;font-size:18px;line-height:1;cursor:pointer}
 .zoom button:hover{border-color:var(--ink-2)}
 .decade-stamp{position:absolute;left:16px;bottom:14px;font-weight:800;font-size:clamp(36px,7vw,72px);letter-spacing:-.02em;color:var(--ink);opacity:.18;pointer-events:none;line-height:1;z-index:1}
-#houses{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#houses,#bldunder{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .houses-ui .hrow{display:flex;align-items:center;gap:8px;font-size:14px}
 .houses-ui input{width:16px;height:16px;accent-color:var(--ink)}
 .houses-ui .hcount{color:var(--ink-2);font-size:13px}
@@ -73,6 +73,12 @@ svg#map{width:100%;height:100%;display:block}
 .houses-ui .hcolor{margin-top:10px;font-size:13px;flex-wrap:wrap;row-gap:3px}
 .houses-ui .hcolor>span{color:var(--ink-2)}
 .houses-ui .hcolor{align-items:center}
+/* свои радио-кружки (не <input type=radio>: Firefox восстанавливал их состояние после перезагрузки) */
+.hradio{display:inline-flex;flex-wrap:wrap;gap:4px 14px}
+.hradio button{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:2px 0;font:inherit;font-size:13px;color:var(--ink);cursor:pointer}
+.hradio button::before{content:"";width:14px;height:14px;border-radius:50%;border:1.5px solid var(--ink-2);box-sizing:border-box;flex:none}
+.hradio button[aria-pressed="true"]::before{border:4.5px solid var(--ink)}
+.hradio button:hover::before{border-color:var(--ink)}
 #hleg-street{margin-top:8px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 14px}
 #hleg-street .hsrow{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
 #hleg-street .hsrow .sw{width:10px;height:10px;border-radius:2px;flex:none}
@@ -206,6 +212,7 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
 <noscript><p style="margin:0;padding:12px 16px;background:#fff3cd;color:#5c4400;font:15px system-ui,sans-serif">Карте нужен JavaScript. Откройте файл в браузере (Chrome, Firefox, Safari, Edge), а не в окне предпросмотра или почтовом клиенте.</p></noscript>
 <div class="app" id="app" data-sheet="min">
   <div class="mapwrap" id="wrap">
+    <canvas id="bldunder" aria-hidden="true"></canvas>
     <svg id="map" role="img" aria-label="Карта улиц Владивостока, раскрашенная по тематикам названий">
       <g id="water" aria-hidden="true"></g><g id="capes"></g><g id="streets"></g><g id="top"></g><g id="hit"></g>
     </svg>
@@ -251,15 +258,15 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
       <section class="houses-ui">
         <h2>Дома (год постройки) <span class="hcount" id="hcount"></span></h2>
         <div id="hlegend">
-          <div class="hrow hcolor" role="group" aria-label="Показ домов на карте">
+          <div class="hrow hcolor" aria-label="Показ домов на карте">
             <span>Показать:</span>
-            <span class="seg" id="hmode"><button type="button" data-v="off" aria-pressed="false">нет</button><button type="button" data-v="street" aria-pressed="true">по улице</button><button type="button" data-v="year" aria-pressed="false">по году</button></span>
+            <span class="hradio" id="hmode" role="radiogroup"><button type="button" role="radio" data-v="off" aria-pressed="true" aria-checked="true">нет</button><button type="button" role="radio" data-v="street" aria-pressed="false" aria-checked="false">по улице</button><button type="button" role="radio" data-v="year" aria-pressed="false" aria-checked="false">по году</button></span>
           </div>
           <div id="hleg-year" hidden>
             <div class="hgrad" id="hgrad"></div>
             <div class="htags"><span id="hy0"></span><span id="hy1"></span></div>
           </div>
-          <div id="hleg-street"></div>
+          <div id="hleg-street" hidden></div>
           <p class="meta hnote" id="hnote" hidden>При приближении дома показываются контурами зданий, остальные здания города — серой подложкой (© OpenStreetMap).</p>
         </div>
       </section>
@@ -575,12 +582,14 @@ let curHover=null; gHit.addEventListener('pointerover',e=>{curHover=+e.target.da
 // ---------- houses layer (ФКР, V4)
 const HD=DATA.houses||null;
 const hcv=document.getElementById('houses'), hctx=hcv.getContext('2d');
+// подложка зданий — на отдельном холсте ПОД улицами (иначе здания у дорог перекрывали края линий)
+const ucv=document.getElementById('bldunder'), uctx=ucv.getContext('2d');
 // режим слоя домов — свои кнопки, а не <input type=radio>: Firefox восстанавливает состояние радио после перезагрузки, и оно расходилось с состоянием скрипта
 const hNote=document.getElementById('hnote'), hModeSeg=document.getElementById('hmode'),
       hCount=document.getElementById('hcount'), hGrad=document.getElementById('hgrad'),
       hy0=document.getElementById('hy0'), hy1=document.getElementById('hy1'),
       hLegYear=document.getElementById('hleg-year'), hLegStreet=document.getElementById('hleg-street');
-let housesOn=true; // слой домов включён по умолчанию («по улице»)
+let housesOn=false; // слой домов по умолчанию выключен («нет»); цвет при включении — «по улице»
 let cumulYear=null;      // текущий год анимации роста (null — обычный режим: все дома)
 const H_LASTYEAR=D1+9;   // финал анимации «к 2029»: дома без года появляются здесь
 const hByStreet={};
@@ -614,9 +623,10 @@ function drawHouses(){
   const r=wrap.getBoundingClientRect();
   const w=Math.max(1,Math.round(r.width)), hh=Math.max(1,Math.round(r.height));
   const dpr=window.devicePixelRatio||1;
-  if(hcv.width!==Math.round(w*dpr)||hcv.height!==Math.round(hh*dpr)){hcv.width=Math.round(w*dpr);hcv.height=Math.round(hh*dpr);}
-  hctx.setTransform(dpr,0,0,dpr,0,0);
-  hctx.clearRect(0,0,w,hh);
+  for(const [cv,cx] of [[hcv,hctx],[ucv,uctx]]){
+    if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(hh*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(hh*dpr);}
+    cx.setTransform(dpr,0,0,dpr,0,0); cx.clearRect(0,0,w,hh);
+  }
   if(!HD)return;
   const sx=r.width/view.w, sy=r.height/view.h, rad=1.4;
   const pal=hColorMode==='street'?giPalette():null;
@@ -664,8 +674,10 @@ function drawContours(sx,sy,dpr,pal){
   const cs=getComputedStyle(document.documentElement), halo=cs.getPropertyValue('--halo').trim(), ink=cs.getPropertyValue('--ink').trim();
   const k=sx/10; // пикселей на метр
   hctx.setTransform(dpr*k,0,0,dpr*sy/10,-view.x*sx*dpr,-view.y*sy*dpr);
-  hctx.fillStyle=cs.getPropertyValue('--street-dim').trim(); hctx.fill(BLD.under);
-  if(!housesOn){hctx.fill(BLD.fAll);hctx.setTransform(dpr,0,0,dpr,0,0);return;} // слой выключен: дома ФКР — как прочие здания
+  uctx.setTransform(dpr*k,0,0,dpr*sy/10,-view.x*sx*dpr,-view.y*sy*dpr);
+  uctx.fillStyle=cs.getPropertyValue('--street-dim').trim(); uctx.fill(BLD.under);
+  if(!housesOn){uctx.fill(BLD.fAll);uctx.setTransform(dpr,0,0,dpr,0,0);hctx.setTransform(dpr,0,0,dpr,0,0);return;} // слой выключен: дома ФКР — как прочие здания
+  uctx.setTransform(dpr,0,0,dpr,0,0);
   const byColor=new Map(), loose=[];
   HD.houses.forEach((h,i)=>{if(!houseVisible(h))return;const p=BLD.f.get(i);if(!p){loose.push(i);return;}
     const c=houseColor(h,pal);(byColor.get(c)||byColor.set(c,[]).get(c)).push(p);});
@@ -736,7 +748,7 @@ if(HD){
   // «нет» — слой выключен; «по году» / «по улице» — слой включён с этой раскраской
   hModeSeg.addEventListener('click',e=>{
     const b=e.target.closest('[data-v]'); if(!b)return; const v=b.dataset.v;
-    hModeSeg.querySelectorAll('[data-v]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+    hModeSeg.querySelectorAll('[data-v]').forEach(x=>{x.setAttribute('aria-pressed',String(x===b));x.setAttribute('aria-checked',String(x===b));});
     const wasOn=housesOn; housesOn=v!=='off'; if(housesOn)hColorMode=v;
     syncHLegend();
     if(housesOn){loadBuildings();drawHouses(); if(!wasOn&&pinned!=null)showStreet(pinned);}
