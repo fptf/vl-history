@@ -1,6 +1,6 @@
 # Слой домов (ФКР) для карты: buildings/ФКР_дома_с_координатами.csv -> 05_code/houses.json
 # Запуск: python3 05_code/houses_prep.py (пути от файла скрипта, cwd не важен).
-# houses.json в .gitignore — не коммитить.
+# houses.json и houses_geo.json в .gitignore — не коммитить.
 #
 # Логика:
 # 1) Берём только «Муниципальное образование» == 'Владивостокский ГО' (город + спутники округа),
@@ -118,7 +118,7 @@ for r in go:
     if k and k in street_by_key and k not in ambiguous:
         sn = next(iter(street_by_key[k]))
     houses.append(dict(x=round(x), y=round(y), year=year, mat=mat, floors=floors, street=sn,
-                       addr=(r['Полный адрес (ФКР)'] or '').strip()))
+                       addr=(r['Полный адрес (ФКР)'] or '').strip(), lat=lat, lon=lon))
 
 # --- таблицы-справочники ---
 years = sorted(h['year'] for h in houses if h['year'] is not None)
@@ -147,6 +147,11 @@ out = dict(
 OUT_PATH = os.path.join(HERE, 'houses.json')
 with open(OUT_PATH, 'w', encoding='utf-8') as f:
     json.dump(out, f, ensure_ascii=False, separators=(',', ':'))
+
+# T-014: точные координаты домов (в том же порядке, что houses) — для сопоставления с контурами зданий OSM
+# (buildings_prep.py); в houses.json координаты округлены до 10 м. Файл в .gitignore.
+with open(os.path.join(HERE, 'houses_geo.json'), 'w', encoding='utf-8') as f:
+    json.dump([[h['lon'], h['lat']] for h in houses], f, separators=(',', ':'))
 
 # --- статистика ---
 dec_cnt = collections.Counter((h['year'] // 10 * 10 if h['year'] is not None else None) for h in houses)

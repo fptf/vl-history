@@ -44,6 +44,7 @@ c3d70632664d981cee23b3248ac38012e8b7830cc73bad0f1ffb31096f26302b  03_sources/raw
 ## Контрольная сумма манифеста
 
 sha256 этого файла (посчитан по содержимому БЕЗ следующей строки):
-`7dc2013b55ba121a06f7582755abe3c62e82e32ab8e94921779c54a6c86e5baf`
+`1ca4d62f2095f984ffeb11ca92a51f526bd789ecad43a0ee8f8390621941d405`
 
 - `02_data/osm_coastline_raw.json` — сырой ответ Overpass (natural=coastline, bbox 42.60–43.60/131.30–132.60, 14.11.2026), sha256 `a20213bd4467ec0b…`; добавлен V15 (вода/берег).
+- `02_data/osm_buildings_vl.json` — здания OSM в границах Владивостокского ГО (73 100 контуров), вырезаны из Geofabrik far-eastern-fed-district-latest.osm.pbf (13.11.2026, md5 14da239f…) скриптом 05_code/osm_buildings_extract.py, 15.11.2026, sha256 `976e4c4dfe2e85be…`; добавлен T-014 (контуры домов).

@@ -8,3 +8,5 @@ water.json
 .ssh/
 .DS_Store
 # Приватные рабочие материалы (диалоги, ключи) хранятся вне репо
+# Точные координаты домов для buildings_prep.py (T-014)
+houses_geo.json
