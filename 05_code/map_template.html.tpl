@@ -131,7 +131,10 @@ h1{font-size:22px;line-height:1.2;margin:0;font-weight:800;letter-spacing:-.01em
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
 .chips button{border:1px solid var(--line);background:transparent;border-radius:4px;padding:2px 7px;font-size:13px;cursor:pointer}
 .chips button:hover{border-color:var(--ink-2)}
-.chips .more{font-size:13px;color:var(--ink-2);padding:3px 2px}
+.chips .more{font-size:13px;color:var(--ink-2);padding:2px 7px;border:1px dashed var(--line);border-radius:4px;background:transparent;cursor:pointer}
+.chips .more:hover{color:var(--ink);border-color:var(--ink-2)}
+.srcs a{color:var(--ink);text-decoration-color:var(--line);text-underline-offset:3px}
+.srcs a:hover{text-decoration-color:currentColor}
 h2{font-size:15px;margin:0 0 8px;font-weight:700}
 .legend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
 .legend button{width:100%;display:grid;grid-template-columns:14px 1fr auto;gap:9px;align-items:center;border:0;background:transparent;padding:5px 6px;border-radius:5px;text-align:left;cursor:pointer;font-size:14px}
@@ -160,18 +163,36 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
 .bars.dimmed .bar:not(.on):not(.past) .seg-g{opacity:.35}
 .bars.gfocus .seg-g:not(.gon){opacity:.28}
 .legend button.hov{background:color-mix(in srgb,var(--ink) 8%,transparent)}
+.grab{display:none}
 @media (max-width:860px){
-  .app{grid-template-columns:1fr;grid-template-rows:62vh auto auto auto;height:auto;min-height:100%}
-  html,body{height:auto}
-  .mapwrap{grid-row:1;height:62vh}
-  .timeline{grid-row:4}
-  aside{grid-column:1;grid-row:3;border-left:0;border-top:1px solid var(--line);overflow:visible}
-  .timeline{grid-template-columns:1fr}
-  .tl-side{flex-direction:row;align-items:center;width:auto}
-  #tlinfo{flex:1}
-  .app{overflow:visible}
-  .info{grid-column:1;grid-row:2;display:none;transform:none;visibility:visible;transition:none;box-shadow:none;border-left:0;padding:14px 16px}
-  .info.open{display:block}
+  /* карта на весь экран, сайдбар и карточка — нижняя шторка: min (поиск) / half / full */
+  html,body{height:100%;overflow:hidden}
+  .app{display:block;position:relative;height:100%;height:100dvh;overflow:hidden;
+    --sh-min:96px;--sh-half:48dvh;--sh-full:calc(100dvh - 64px);--sh:var(--sh-min)}
+  .app[data-sheet="half"]{--sh:var(--sh-half)}
+  .app[data-sheet="full"]{--sh:var(--sh-full)}
+  .mapwrap{position:absolute;inset:0;height:auto}
+  .decade-stamp{top:12px;bottom:auto;left:12px}
+  aside,.info{position:absolute;left:0;right:0;bottom:0;top:auto;height:var(--sh);z-index:5;
+    border:0;border-top:1px solid var(--line);border-radius:14px 14px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.16);
+    overflow-y:auto;overscroll-behavior:contain;padding:0 16px calc(16px + env(safe-area-inset-bottom,0px));transition:height .25s ease}
+  aside{gap:14px}
+  .info{z-index:6;transform:translateY(105%);visibility:hidden;transition:height .25s ease,transform .25s ease,visibility 0s linear .25s}
+  .info.open{transform:none;visibility:visible;transition:height .25s ease,transform .25s ease}
+  .app[data-sheet="min"] aside,.app[data-sheet="min"] .info{overflow:hidden}
+  .grab{display:block;position:sticky;top:0;z-index:2;height:24px;margin:0 -16px 4px;flex:none;background:var(--panel);touch-action:none;cursor:grab}
+  .grab::before{content:"";position:absolute;left:50%;top:9px;width:42px;height:5px;border-radius:3px;background:var(--line);transform:translateX(-50%)}
+  .grab{order:-2}
+  .controls{order:-1}
+  .search h2{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  #qmsg:empty{display:none}
+  h1{font-size:17px}
+  aside .timeline{background:none;border:0;padding:0;grid-template-columns:1fr}
+  /* шапка таймлайна: счётчик + кнопка в строку, примечание — под ними (иначе счётчик сжимался в ноль) */
+  .tl-side{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 12px;width:auto}
+  #tlinfo{grid-column:1;grid-row:1;height:auto;min-height:2.6em}
+  .play{grid-column:2;grid-row:1}
+  .tl-note{grid-column:1 / -1}
   .bar{flex:1 0 13px}
   .bars{gap:2px}
 }
@@ -180,7 +201,7 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
 </head>
 <body>
 <noscript><p style="margin:0;padding:12px 16px;background:#fff3cd;color:#5c4400;font:15px system-ui,sans-serif">Карте нужен JavaScript. Откройте файл в браузере (Chrome, Firefox, Safari, Edge), а не в окне предпросмотра или почтовом клиенте.</p></noscript>
-<div class="app">
+<div class="app" id="app" data-sheet="min">
   <div class="mapwrap" id="wrap">
     <svg id="map" role="img" aria-label="Карта улиц Владивостока, раскрашенная по тематикам названий">
       <g id="water" aria-hidden="true"></g><g id="capes"></g><g id="streets"></g><g id="top"></g><g id="hit"></g>
@@ -204,7 +225,8 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
     <div class="bars" id="bars"></div>
   </section>
 
-  <aside>
+  <aside id="sidebar">
+    <div class="grab" aria-hidden="true"></div>
     <header>
       <h1>Улицы Владивостока: о ком и о чём</h1>
     </header>
@@ -249,6 +271,7 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
   </aside>
 
   <section class="info" id="streetview" aria-live="polite">
+    <div class="grab" aria-hidden="true"></div>
     <button class="back" id="back" type="button" aria-label="Назад к обзору">← Назад</button>
     <div class="plate empty" id="plate"><div class="plate-in"><p class="kind" id="pkind">Владивосток</p><p class="name" id="pname">Выберите улицу на карте</p></div></div>
     <fieldset class="rel" id="relseg">
@@ -313,8 +336,12 @@ function fitFull(){
   view={x:c.x-w/2,y:c.y-h/2,w,h};apply();
 }
 function apply(){
+  const r=wrap.getBoundingClientRect();
+  // view — строго в пропорциях окна карты: иначе SVG вписывается с полями (meet), а canvas домов растягивается и точки съезжают
+  // (на телефоне высота карты меняется при скрытии адресной строки, повороте, открытии карточки)
+  if(r.width>0&&r.height>0){const h=view.w*r.height/r.width; if(Math.abs(h-view.h)>1e-6){view.y+=(view.h-h)/2;view.h=h;}}
   svg.setAttribute('viewBox',`${view.x} ${view.y} ${view.w} ${view.h}`);
-  const r=wrap.getBoundingClientRect(), scale=r.width/view.w; // px per unit
+  const scale=r.width/view.w; // px per unit
   // cape radius & label size constant in px
   gCapes.querySelectorAll('circle').forEach(c=>c.setAttribute('r',2.2/scale));
   gCapes.querySelectorAll('text').forEach(t=>{t.style.fontSize=(11/scale)+'px';t.style.strokeWidth=(3/scale)+'px';});
@@ -368,7 +395,7 @@ function endPtr(e){
     if(hi>=0){openHouse(hi,e);}
     else{
       const t=document.elementFromPoint(e.clientX,e.clientY);
-      if(t&&t.parentNode===gHit){select(+t.dataset.i,false);} else if(!e.target.closest('.zoom')) clearPin();
+      if(t&&t.parentNode===gHit){select(+t.dataset.i,false);} else if(!e.target.closest('.zoom')){clearPin();if(mq.matches)setSheet('min');}
     }
   }
 }
@@ -403,19 +430,44 @@ function restore(){
   else {clearHL();markDecade(null);if(houseOpen!=null)showHouse(houseOpen,null);else renderEmpty();}
   syncView();
 }
+// ---------- мобильная шторка (≤860px): состояние в app.dataset.sheet = min | half | full
+const app=document.getElementById('app'), sidebar=document.getElementById('sidebar'), mq=matchMedia('(max-width:860px)');
+function setSheet(st){app.dataset.sheet=st;}
+function sheetPx(st){const H=innerHeight;return st==='full'?H-64:st==='half'?H*0.48:96;}
+function sheetCover(){return mq.matches?sheetPx(app.dataset.sheet):0;} // сколько карты снизу закрыто шторкой
+// таймлайн: на телефоне — внутри шторки (вверху обзора), на десктопе — под картой
+const tlSec=document.querySelector('.timeline');
+function placeTimeline(){if(mq.matches){const ov=document.getElementById('overview');if(tlSec.parentNode!==ov)ov.prepend(tlSec);}else if(tlSec.parentNode!==app)app.insertBefore(tlSec,sidebar);}
+mq.addEventListener('change',()=>{placeTimeline();apply();});
+document.querySelectorAll('.grab').forEach(g=>{
+  let d=null;
+  g.addEventListener('pointerdown',e=>{if(!mq.matches)return;d={y:e.clientY,h:g.parentElement.getBoundingClientRect().height,moved:false};
+    try{g.setPointerCapture(e.pointerId)}catch(_){} [sidebar,streetview].forEach(x=>x.style.transition='none');});
+  g.addEventListener('pointermove',e=>{if(!d)return;const dy=e.clientY-d.y;if(Math.abs(dy)>4)d.moved=true;
+    if(d.moved){const h=Math.max(sheetPx('min'),Math.min(sheetPx('full'),d.h-dy));[sidebar,streetview].forEach(x=>x.style.height=h+'px');}});
+  const end=()=>{if(!d)return;let st;
+    if(!d.moved)st={min:'half',half:'full',full:'min'}[app.dataset.sheet];
+    else{const h=g.parentElement.getBoundingClientRect().height;st=['min','half','full'].reduce((a,b)=>Math.abs(sheetPx(b)-h)<Math.abs(sheetPx(a)-h)?b:a);}
+    [sidebar,streetview].forEach(x=>{x.style.height='';x.style.transition='';});d=null;setSheet(st);};
+  g.addEventListener('pointerup',end);g.addEventListener('pointercancel',end);
+});
+document.getElementById('q').addEventListener('focus',()=>{if(mq.matches&&app.dataset.sheet==='min')setSheet('half');});
+
 // колонка: обзор (группы, дома) или карточка закреплённой улицы / дома
 const streetview=document.getElementById('streetview');
 let hovered=null;          // улица под курсором (подсвечена на карте, панель не открывает)
-function syncView(){streetview.classList.toggle('open',pinned!=null||houseOpen!=null); if(housesOn&&drawnSel!==houseOpen)drawHouses();}
+function syncView(){const on=pinned!=null||houseOpen!=null, was=streetview.classList.contains('open');
+  streetview.classList.toggle('open',on);
+  if(mq.matches){if(on&&!was)setSheet('half');else if(!on&&was)setSheet('min');} if(housesOn&&drawnSel!==houseOpen)drawHouses();}
 function openHouse(i,e){pinned=null;legendPinned=null;decPinned=null;hovered=null;syncPressed();houseOpen=i;clearHL();markDecade(null);showHouse(i,e);syncView();}
 function select(i,zoom){
   pinned=i; legendPinned=null; decPinned=null; hovered=null; syncPressed(); showStreet(i); syncView();
   if(zoom){const bb=paths[i].getBBox(), r=wrap.getBoundingClientRect(), ar=r.width/r.height;
-    let h=Math.max(bb.height*2.4,bb.width*2.4/ar,500), w=h*ar; view={x:bb.x+bb.width/2-w/2,y:bb.y+bb.height/2-h/2,w,h};apply();}
+    let h=Math.max(bb.height*2.4,bb.width*2.4/ar,500), w=h*ar; view={x:bb.x+bb.width/2-w/2,y:bb.y+bb.height/2-h/2+sheetCover()/2/r.height*h,w,h};apply();}
 }
 function clearPin(){pinned=null;legendPinned=null;decPinned=null;syncPressed();restore();}
 function fitTo(ids){if(!ids.length)return;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;ids.forEach(i=>{const b=paths[i].getBBox();x0=Math.min(x0,b.x);y0=Math.min(y0,b.y);x1=Math.max(x1,b.x+b.width);y1=Math.max(y1,b.y+b.height);});
-  const r=wrap.getBoundingClientRect(),ar=r.width/r.height,pad=1.12;const w=Math.max((x1-x0)*pad,(y1-y0)*pad*ar,600*ar),h=w/ar;view={x:(x0+x1)/2-w/2,y:(y0+y1)/2-h/2,w,h};apply();}
+  const r=wrap.getBoundingClientRect(),ar=r.width/r.height,pad=1.12;const w=Math.max((x1-x0)*pad,(y1-y0)*pad*ar,600*ar),h=w/ar;view={x:(x0+x1)/2-w/2,y:(y0+y1)/2-h/2+sheetCover()/2/r.height*h,w,h};apply();}
 function frameNote(ids){let k=0;ids.forEach(i=>{const b=paths[i].getBBox();if(b.x+b.width>=view.x&&b.x<=view.x+view.w&&b.y+b.height>=view.y&&b.y<=view.y+view.h)k++;});
   return k<ids.length?`<p class="meta">В кадре видно <b>${k}</b> из ${ids.length}, остальные за краем карты. Нажмите на столбик, чтобы показать все.</p>`:'';}
 
@@ -441,6 +493,23 @@ function splitName(n){
 }
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const relLabel={cat:'тематики',sub:'подтемы',group:'группы'};
+// T-001: ссылки на первоисточники — коды из prep.py разворачиваются в подпись + URL
+const SRCS=DATA.srcs||[];
+const HOSTS={'ru.wikipedia.org':'Википедия','ru.ruwiki.ru':'Рувики','vladnews.ru':'газета «Владивосток»','wikimapia.org':'Wikimapia','newsvl.ru':'VL.ru'};
+function srcLink(k){
+  const c=SRCS[k], t=c[0], v=c.slice(2); let u,l;
+  const dt=(y,m,d,n)=>`Постановление от ${d}.${m}.${y}\u00a0№\u00a0${n}`;
+  if(t==='d'){const m=v.match(/^(\d{4})(\d{2})(\d{2})-(\d+)$/);u='https://github.com/skirienko/vvmap/blob/main/documents/'+v+'.md';l=dt(m[1],m[2],m[3],m[4]);}
+  else if(t==='p'){const m=v.match(/^(\d{4})\.(\d{2})\.(\d{2})-(\d+)$/);u='https://web.archive.org/web/2025/https://topovl.ru/decree-'+v+'.html';l=dt(m[1],m[2],m[3],m[4])+' (архив topovl.ru)';}
+  else if(t==='t'){const [ch,n]=v.split('/');u='https://t.me/'+v;l='Telegram @'+ch+', пост '+n;}
+  else {u=v;let h='';try{h=new URL(v).hostname.replace(/^www\./,'');}catch(_){} l=HOSTS[h]||h||v;}
+  return `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(l)}</a>`;
+}
+function srcLine(f){return f.src&&f.src.length?`<p class="meta srcs">${f.src.length>1?'Источники':'Источник'}: ${f.src.map(srcLink).join(', ')}</p>`:'';}
+// список чипов: первые lim видны, остальные раскрывает кнопка «и ещё N»
+function chipList(items,lim){
+  return items.map((h,k)=>k<lim?h:h.replace('<button ','<button hidden ')).join('')+(items.length>lim?`<button class="more" data-more>и ещё ${items.length-lim}</button>`:'');
+}
 function updRel(i){
   const G={sub:'узко: одна эпоха, регион или вид',cat:'средне: род занятий или тип объекта',group:'широко: люди, география, природа…'};
   ['sub','cat','group'].forEach(m=>{
@@ -456,7 +525,6 @@ function renderDetails(i,rel){
   plate.classList.remove('empty'); pkind.textContent=sp.kind||'улица'; setName(sp.name,true);
   relseg.hidden=false; relseg.style.setProperty('--gc','var(--g'+f.gi+')');
   const names=[...new Set(rel.map(j=>F[j].n))].filter(n=>n!==f.n).sort((a,b)=>splitName(a).name.localeCompare(splitName(b).name,'ru'));
-  const shown=names.slice(0,16);
   const yr=f.y!=null?`<b>${f.y}</b>${f.yd?' — '+esc(f.yd):''}`:'год неизвестен';
   let hSum='';
   if(HD&&housesOn){const hs=hByStreet[f.n];
@@ -466,11 +534,12 @@ function renderDetails(i,rel){
       hSum='<p class="meta">Дома ФКР на этой улице: <b>'+hs.length+'</b>'+(ys.length?', постройка <b>'+Math.min(...ys)+'–'+Math.max(...ys)+'</b>':'')+(top?', материалы: '+top:'')+'.</p>';}}
   details.innerHTML=`
     ${f.o?`<p class="meta">${esc(f.o)}</p>`:''}
-    <p class="meta">Название: ${yr}</p>
+    <p class="meta">Название присвоено: ${yr}</p>
+    ${srcLine(f)}
     ${hSum}
     ${f.u?'<p class="warn">Тематика определена предположительно, нужна проверка.</p>':''}
     <div class="rel-head"><p>${names.length} ${plural(names.length,'улица','улицы','улиц')} той же ${relLabel[relMode]}</p></div>
-    <div class="chips">${shown.map(n=>`<button data-n="${esc(n)}">${esc(splitName(n).name)}</button>`).join('')}${names.length>shown.length?`<span class="more">и ещё ${names.length-shown.length}</span>`:''}</div>`;
+    <div class="chips">${chipList(names.map(n=>`<button data-n="${esc(n)}">${esc(splitName(n).name)}</button>`),16)}</div>`;
 }
 function renderEmpty(){
   updRel(null);
@@ -485,6 +554,7 @@ relseg.addEventListener('click',e=>{
   if(pinned!=null)showStreet(pinned);
 });
 details.addEventListener('click',e=>{
+  const mo=e.target.closest('[data-more]'); if(mo){mo.parentNode.querySelectorAll('button[hidden]').forEach(b=>b.hidden=false);mo.remove();return;}
   const c=e.target.closest('[data-n]'); if(c){select(byName[c.dataset.n][0],true);}
 });
 let curHover=null; gHit.addEventListener('pointerover',e=>{curHover=+e.target.dataset.i});
@@ -663,7 +733,7 @@ function decText(d){const ids=byDec[d]||[];const cnt=GROUPS.map(()=>0);ids.forEa
 function showDecade(d){showSet(byDec[d]||[]);markDecade(d);tlinfo.innerHTML=decText(d);
   plate.classList.add('empty');pkind.textContent='десятилетие';setName(`${d}-е годы`);
   const ids=byDec[d]||[];const names=[...new Set(ids.map(j=>F[j].n))].sort((a,b)=>(F[byName[a][0]].y-F[byName[b][0]].y));
-  details.innerHTML=`<p class="meta">${ids.length} ${plural(ids.length,'улица получила','улицы получили','улиц получили')} нынешнее название в эти годы.</p>${frameNote(ids)}<div class="chips">${names.slice(0,24).map(n=>`<button data-n="${esc(n)}">${esc(splitName(n).name)} <span style="color:var(--ink-2)">${F[byName[n][0]].y}</span></button>`).join('')}${names.length>24?`<span class="more">и ещё ${names.length-24}</span>`:''}</div>`;}
+  details.innerHTML=`<p class="meta">${ids.length} ${plural(ids.length,'улица получила','улицы получили','улиц получили')} нынешнее название в эти годы.</p>${frameNote(ids)}<div class="chips">${chipList(names.map(n=>`<button data-n="${esc(n)}">${esc(splitName(n).name)} <span style="color:var(--ink-2)">${F[byName[n][0]].y}</span></button>`),24)}</div>`;}
 function markDecade(d){bars.querySelectorAll('.bar').forEach(b=>b.classList.toggle('mark',d!=null&&+b.dataset.d===d));}
 bars.addEventListener('pointerover',e=>{const b=e.target.closest('.bar');if(!b||playing)return;
   const sg=e.target.closest('.seg-g'), d=+b.dataset.d, gi=sg?+sg.dataset.g:null;
@@ -735,8 +805,9 @@ q.addEventListener('change',doSearch);
 q.addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
 
 // ---------- init
-renderEmpty(); fitFull();
+placeTimeline(); renderEmpty(); fitFull();
 window.addEventListener('resize',()=>apply());
+if(window.ResizeObserver)new ResizeObserver(()=>apply()).observe(wrap);
 </script>
 </body>
 </html>
