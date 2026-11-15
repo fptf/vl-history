@@ -85,7 +85,7 @@ h1{font-size:22px;line-height:1.2;margin:0;font-weight:800;letter-spacing:-.01em
 .plate{flex:none}
 .plate-in{border:2px solid rgba(255,255,255,.9);border-radius:4px;padding:8px 14px 10px;min-height:92px;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
 .plate .kind{font-size:13px;font-weight:500;opacity:.92;margin:0}
-.plate .name{font-size:26px;font-weight:800;line-height:1.1;margin:2px 0 0;letter-spacing:-.005em;overflow-wrap:break-word;hyphens:auto}
+.plate .name{font-size:26px;font-weight:800;line-height:1.1;margin:2px 0 0;letter-spacing:-.005em;overflow-wrap:break-word;hyphens:manual} /* названия и адреса не переносим по слогам */
 .controls{display:flex;flex-direction:column;gap:16px;flex:none}
 .relrow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 10px}
 .rel{border:0;margin:0;padding:0;min-width:0;display:flex;flex-direction:column;gap:4px}
