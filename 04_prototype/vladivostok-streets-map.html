@@ -37,6 +37,10 @@ button:focus-visible,input:focus-visible,.bar:focus-visible{outline:2px solid va
 .app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:minmax(0,1fr) auto}
 .mapwrap{position:relative;grid-column:1;grid-row:1;overflow:hidden;touch-action:none;cursor:grab}
 .mapwrap.drag{cursor:grabbing}
+.mapwrap.onhouse{cursor:pointer}
+.link{border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--ink);text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px;cursor:pointer}
+.link:hover{text-decoration-color:currentColor}
+.meta .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 6px 0 2px;vertical-align:0}
 svg#map{width:100%;height:100%;display:block}
 #water{pointer-events:none}
 #water path{fill:var(--water)}
@@ -77,9 +81,9 @@ h1{font-size:22px;line-height:1.2;margin:0;font-weight:800;letter-spacing:-.01em
 .lede{margin:6px 0 0;color:var(--ink-2);font-size:14px}
 .plate{background:var(--plate);color:var(--plate-ink);border-radius:7px;padding:5px}
 .plate{flex:none}
-.plate-in{border:2px solid rgba(255,255,255,.9);border-radius:4px;padding:8px 14px 10px;height:92px;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+.plate-in{border:2px solid rgba(255,255,255,.9);border-radius:4px;padding:8px 14px 10px;min-height:92px;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
 .plate .kind{font-size:13px;font-weight:500;opacity:.92;margin:0}
-.plate .name{font-size:26px;font-weight:800;line-height:1.1;margin:2px 0 0;letter-spacing:-.005em;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.plate .name{font-size:26px;font-weight:800;line-height:1.1;margin:2px 0 0;letter-spacing:-.005em;overflow-wrap:break-word;hyphens:auto}
 .controls{display:flex;flex-direction:column;gap:16px;flex:none}
 .relrow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 10px}
 .rel{border:0;margin:0;padding:0;min-width:0;display:flex;flex-direction:column;gap:4px}
@@ -99,7 +103,19 @@ h1{font-size:22px;line-height:1.2;margin:0;font-weight:800;letter-spacing:-.01em
 .src summary{cursor:pointer;font-weight:600;color:var(--ink-2);list-style-position:inside}
 .src details[open] summary{margin-bottom:8px}
 .relrow span{font-size:15px;font-weight:700}
-.info{flex:1 1 0;min-height:260px;overflow-y:auto;overscroll-behavior:contain;border-top:1px solid var(--line);padding-top:16px}
+.app{overflow:hidden}
+.info{grid-column:2;grid-row:1 / span 2;z-index:4;background:var(--panel);border-left:1px solid var(--line);box-shadow:-10px 0 28px rgba(0,0,0,.14);overflow-y:auto;overscroll-behavior:contain;padding:18px 22px 28px;transform:translateX(100%);visibility:hidden;transition:transform .22s ease,visibility 0s linear .22s}
+.info.open{transform:none;visibility:visible;transition:transform .22s ease}
+.overview{flex:1 0 auto;display:flex;flex-direction:column;gap:16px}
+.back{display:inline-flex;align-items:center;gap:4px;border:0;background:transparent;color:var(--ink-2);font-weight:600;font-size:14px;padding:4px 6px;margin:0 0 8px -6px;border-radius:5px;cursor:pointer}
+.back:hover{color:var(--ink);background:color-mix(in srgb,var(--ink) 8%,transparent)}
+.info .rel{margin-top:16px}
+.rel legend{display:flex;align-items:center;gap:8px;width:100%}
+.rel button{grid-template-areas:"s i" !important;height:38px !important}
+.rel button span{padding-left:0 !important;color:var(--ink) !important}
+.rel button span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;border:1.5px solid var(--ink-2);margin-right:7px;vertical-align:1px}
+.rel button[aria-pressed="true"] span::before{background:var(--ink);border-color:var(--ink)}
+.gsw{width:12px;height:12px;border-radius:3px;background:var(--gc,var(--ink-2));flex:none}
 .src{flex:none}
 .plate.empty .name{font-size:17px;font-weight:600}
 .crumbs{font-size:14px;margin:10px 0 0;color:var(--ink)}
@@ -142,20 +158,24 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
 .bar:hover,.bar.on{background:color-mix(in srgb,var(--ink) 9%,transparent)}
 .bar.mark::after{content:"";position:absolute;left:-1px;right:-1px;top:0;bottom:0;border:2px solid var(--ink);border-bottom:0;border-radius:3px 3px 0 0;pointer-events:none}
 .bars.dimmed .bar:not(.on):not(.past) .seg-g{opacity:.35}
+.bars.gfocus .seg-g:not(.gon){opacity:.28}
+.legend button.hov{background:color-mix(in srgb,var(--ink) 8%,transparent)}
 @media (max-width:860px){
-  .app{grid-template-columns:1fr;grid-template-rows:62vh auto auto;height:auto;min-height:100%}
+  .app{grid-template-columns:1fr;grid-template-rows:62vh auto auto auto;height:auto;min-height:100%}
   html,body{height:auto}
   .mapwrap{grid-row:1;height:62vh}
-  .timeline{grid-row:2}
+  .timeline{grid-row:4}
   aside{grid-column:1;grid-row:3;border-left:0;border-top:1px solid var(--line);overflow:visible}
   .timeline{grid-template-columns:1fr}
   .tl-side{flex-direction:row;align-items:center;width:auto}
   #tlinfo{flex:1}
-  .info{order:-1;flex:none;height:340px;min-height:0;border-top:0;padding-top:0}
+  .app{overflow:visible}
+  .info{grid-column:1;grid-row:2;display:none;transform:none;visibility:visible;transition:none;box-shadow:none;border-left:0;padding:14px 16px}
+  .info.open{display:block}
   .bar{flex:1 0 13px}
   .bars{gap:2px}
 }
-@media (prefers-reduced-motion:reduce){.s{transition:none}}
+@media (prefers-reduced-motion:reduce){.s,.info,.info.open{transition:none}}
 </style>
 </head>
 <body>
@@ -196,48 +216,49 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
         <datalist id="names"></datalist>
         <p id="qmsg"></p>
       </section>
+    </div>
 
-      <fieldset class="rel" id="relseg">
-        <legend>Что подсвечивать вместе с улицей</legend>
-        <button data-m="sub" aria-pressed="false"><b>Та же подтема</b><span id="rv-sub"></span><i id="rn-sub"></i></button>
-        <button data-m="cat" aria-pressed="true"><b>Та же тематика</b><span id="rv-cat"></span><i id="rn-cat"></i></button>
-        <button data-m="group" aria-pressed="false"><b>Та же группа</b><span id="rv-group"></span><i id="rn-group"></i></button>
-      </fieldset>
-
+    <div class="overview" id="overview">
       <section>
         <h2>Группы названий</h2>
         <ul class="legend" id="legend"></ul>
       </section>
-
       <section class="houses-ui">
-        <h2><label class="hrow"><input type="checkbox" id="htoggle"> Дома (год постройки) <span class="hcount" id="hcount"></span></label></h2>
-        <div id="hlegend" hidden>
-          <div class="hrow hcolor" role="radiogroup" aria-label="Цвет домов">
-            <span>Цвет домов:</span>
-            <label><input type="radio" name="hcolormode" value="year" checked> по году</label>
+        <h2>Дома (год постройки) <span class="hcount" id="hcount"></span></h2>
+        <div id="hlegend">
+          <div class="hrow hcolor" role="radiogroup" aria-label="Показ домов на карте">
+            <span>Показать:</span>
+            <label><input type="radio" name="hcolormode" value="off" checked> нет</label>
             <label><input type="radio" name="hcolormode" value="street"> по улице</label>
+            <label><input type="radio" name="hcolormode" value="year"> по году</label>
           </div>
-          <div id="hleg-year">
+          <div id="hleg-year" hidden>
             <div class="hgrad" id="hgrad"></div>
             <div class="htags"><span id="hy0"></span><span id="hy1"></span></div>
           </div>
           <div id="hleg-street" hidden></div>
-          <p class="meta">Дома (ФКР) — многоквартирные дома Владивостокского ГО (город + Трудовое + острова); цвет — десятилетие постройки или группа улицы (переключатель выше), серый — год неизвестен / дом не привязан к улицам карты. Клик по дому — адрес, год, материал, этажей. Координаты геокодированы автоматически, возможны неточности.</p>
         </div>
       </section>
+      <footer class="src"><details><summary>Источники и пояснения</summary>
+        <p>Геометрия улиц — © участники OpenStreetMap (ODbL), выгрузка и годы названий — открытый проект <a href="https://github.com/skirienko/vvmap" target="_blank" rel="noopener">vvmap</a>.</p>
+        <p>Год — когда улица получила нынешнее название или впервые упомянута в документах. Пик 1920-х во многом даёт справочник 1924 года.</p>
+        <p>Тематическая классификация — составлена в нашем разговоре; около 5% названий помечены как требующие проверки.</p>
+      </details></footer>
     </div>
 
-    <section class="info" aria-live="polite">
-      <div class="plate empty" id="plate"><div class="plate-in"><p class="kind" id="pkind">Владивосток</p><p class="name" id="pname">Выберите улицу на карте</p></div></div>
-      <div id="details"></div>
-    </section>
-
-    <footer class="src"><details><summary>Источники и пояснения</summary>
-      <p>Геометрия улиц — © участники OpenStreetMap (ODbL), выгрузка и годы названий — открытый проект <a href="https://github.com/skirienko/vvmap" target="_blank" rel="noopener">vvmap</a>.</p>
-      <p>Год — когда улица получила нынешнее название или впервые упомянута в документах. Пик 1920-х во многом даёт справочник 1924 года.</p>
-      <p>Тематическая классификация — составлена в нашем разговоре; около 5% названий помечены как требующие проверки.</p>
-    </details></footer>
   </aside>
+
+  <section class="info" id="streetview" aria-live="polite">
+    <button class="back" id="back" type="button" aria-label="Назад к обзору">← Назад</button>
+    <div class="plate empty" id="plate"><div class="plate-in"><p class="kind" id="pkind">Владивосток</p><p class="name" id="pname">Выберите улицу на карте</p></div></div>
+    <fieldset class="rel" id="relseg">
+      <legend>Что подсвечивать вместе с улицей <span class="gsw" title="Цвет подсветки — цвет группы названия"></span></legend>
+      <button data-m="group" aria-pressed="false" aria-label="Подсвечивать улицы той же группы"><span id="rv-group"></span><i id="rn-group"></i></button>
+      <button data-m="cat" aria-pressed="true" aria-label="Подсвечивать улицы той же тематики"><span id="rv-cat"></span><i id="rn-cat"></i></button>
+      <button data-m="sub" aria-pressed="false" aria-label="Подсвечивать улицы той же подтемы"><span id="rv-sub"></span><i id="rn-sub"></i></button>
+    </fieldset>
+    <div id="details"></div>
+  </section>
 </div>
 
 <script>
@@ -319,6 +340,11 @@ wrap.addEventListener('pointerdown',e=>{
   if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),v:{...view},c:toSvg((a.x+b.x)/2,(a.y+b.y)/2)};moved=true;}
 });
 wrap.addEventListener('pointermove',e=>{
+  if(!ptrs.size&&e.pointerType!=='touch'){
+    const hi=houseAt(e.clientX,e.clientY); wrap.classList.toggle('onhouse',hi>=0);
+    const prev=hoverHouse; if(hi!==prev){hoverHouse=hi;drawHouses();}
+    if(hi>=0)showTip(e,houseTip(HD.houses[hi])); else if(prev>=0)hideTip();
+  }
   if(!ptrs.has(e.pointerId))return;
   ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
   const r=wrap.getBoundingClientRect();
@@ -339,7 +365,7 @@ function endPtr(e){
   if(ptrs.size===0){wrap.classList.remove('drag');dragStart=null;}
   if(wasTap&&e.type==='pointerup'){
     const hi=houseAt(e.clientX,e.clientY);
-    if(hi>=0){showHouse(hi,e);}
+    if(hi>=0){openHouse(hi,e);}
     else{
       const t=document.elementFromPoint(e.clientX,e.clientY);
       if(t&&t.parentNode===gHit){select(+t.dataset.i,false);} else if(!e.target.closest('.zoom')) clearPin();
@@ -350,6 +376,7 @@ wrap.addEventListener('pointerup',endPtr);wrap.addEventListener('pointercancel',
 
 // ---------- highlight state
 let pinned=null;           // index of pinned street
+let houseOpen=null;        // index of opened house (ФКР)
 let hlSet=[], mainSet=[];
 let tlState=null;          // {dec} hovered decade
 function clearHL(){hlSet.forEach(i=>paths[i].classList.remove('hl'));hlSet=[];gTop.textContent='';svg.classList.remove('focus');}
@@ -373,10 +400,16 @@ function restore(){
   if(pinned!=null) showStreet(pinned);
   else if(legendPinned!=null) showGroup(legendPinned);
   else if(decPinned!=null) showDecade(decPinned);
-  else {clearHL();markDecade(null);renderEmpty();}
+  else {clearHL();markDecade(null);if(houseOpen!=null)showHouse(houseOpen,null);else renderEmpty();}
+  syncView();
 }
+// колонка: обзор (группы, дома) или карточка закреплённой улицы / дома
+const streetview=document.getElementById('streetview');
+let hovered=null;          // улица под курсором (подсвечена на карте, панель не открывает)
+function syncView(){streetview.classList.toggle('open',pinned!=null||houseOpen!=null); if(housesOn&&drawnSel!==houseOpen)drawHouses();}
+function openHouse(i,e){pinned=null;legendPinned=null;decPinned=null;hovered=null;syncPressed();houseOpen=i;clearHL();markDecade(null);showHouse(i,e);syncView();}
 function select(i,zoom){
-  pinned=i; legendPinned=null; decPinned=null; syncPressed(); showStreet(i);
+  pinned=i; legendPinned=null; decPinned=null; hovered=null; syncPressed(); showStreet(i); syncView();
   if(zoom){const bb=paths[i].getBBox(), r=wrap.getBoundingClientRect(), ar=r.width/r.height;
     let h=Math.max(bb.height*2.4,bb.width*2.4/ar,500), w=h*ar; view={x:bb.x+bb.width/2-w/2,y:bb.y+bb.height/2-h/2,w,h};apply();}
 }
@@ -387,15 +420,19 @@ function frameNote(ids){let k=0;ids.forEach(i=>{const b=paths[i].getBBox();if(b.
   return k<ids.length?`<p class="meta">В кадре видно <b>${k}</b> из ${ids.length}, остальные за краем карты. Нажмите на столбик, чтобы показать все.</p>`:'';}
 
 // hover on map
-gHit.addEventListener('pointerover',e=>{if(moved&&dragStart)return;const i=+e.target.dataset.i;if(e.pointerType!=='touch'){showStreet(i);showTip(e,F[i].n);}});
+const somethingPinned=()=>pinned!=null||houseOpen!=null||legendPinned!=null||decPinned!=null;
+gHit.addEventListener('pointerover',e=>{if(moved&&dragStart)return;const i=+e.target.dataset.i;if(e.pointerType!=='touch'){if(houseAt(e.clientX,e.clientY)>=0)return; // дом поверх улицы — приоритет у дома
+  if(!somethingPinned()){hovered=i;showStreet(i);syncView();}showTip(e,F[i].n);}});
 gHit.addEventListener('pointermove',e=>{if(e.pointerType!=='touch'&&!(moved&&dragStart))showTip(e,F[+e.target.dataset.i].n);});
-gHit.addEventListener('pointerout',e=>{if(e.pointerType==='touch')return;hideTip();restore();});
+gHit.addEventListener('pointerout',e=>{if(e.pointerType==='touch')return;const was=hovered;hovered=null;hideTip();if(was!=null)restore();});
 function showTip(e,t){const r=wrap.getBoundingClientRect();tip.textContent=t;tip.style.left=(e.clientX-r.left)+'px';tip.style.top=(e.clientY-r.top)+'px';tip.style.display='block';}
 function hideTip(){tip.style.display='none';}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){clearPin();}});
 
 // ---------- details panel
 const plate=document.getElementById('plate'), pkind=document.getElementById('pkind'), pname=document.getElementById('pname'), details=document.getElementById('details');
+// название на табличке: чем длиннее, тем мельче кегль (табличка растёт до 3 строк)
+function setName(t,fit){pname.textContent=t;const L=t.length;pname.style.fontSize=fit?(L<=14?26:L<=20?22:L<=30?19:16)+'px':'';}
 const KINDS=['улица','переулок','проспект','шоссе','набережная','бульвар','площадь','проезд'];
 function splitName(n){
   const w=n.split(' '); let kind='',rest=[];
@@ -416,7 +453,8 @@ function updRel(i){
 function plural(n,a,b,c){n=Math.abs(n)%100;const m=n%10;if(n>10&&n<20)return c;if(m>1&&m<5)return b;if(m===1)return a;return c;}
 function renderDetails(i,rel){
   const f=F[i], sp=splitName(f.n);
-  plate.classList.remove('empty'); pkind.textContent=sp.kind||'улица'; pname.textContent=sp.name;
+  plate.classList.remove('empty'); pkind.textContent=sp.kind||'улица'; setName(sp.name,true);
+  relseg.hidden=false; relseg.style.setProperty('--gc','var(--g'+f.gi+')');
   const names=[...new Set(rel.map(j=>F[j].n))].filter(n=>n!==f.n).sort((a,b)=>splitName(a).name.localeCompare(splitName(b).name,'ru'));
   const shown=names.slice(0,16);
   const yr=f.y!=null?`<b>${f.y}</b>${f.yd?' — '+esc(f.yd):''}`:'год неизвестен';
@@ -427,7 +465,6 @@ function renderDetails(i,rel){
       const top=Object.entries(mc).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([m,c])=>esc(m)+' — '+c).join(', ');
       hSum='<p class="meta">Дома ФКР на этой улице: <b>'+hs.length+'</b>'+(ys.length?', постройка <b>'+Math.min(...ys)+'–'+Math.max(...ys)+'</b>':'')+(top?', материалы: '+top:'')+'.</p>';}}
   details.innerHTML=`
-    <p class="crumbs"><span class="sw" style="background:var(--g${f.gi})"></span>${esc(f.g)} › ${esc(f.c)} › ${esc(f.s)}</p>
     ${f.o?`<p class="meta">${esc(f.o)}</p>`:''}
     <p class="meta">Название: ${yr}</p>
     ${hSum}
@@ -437,10 +474,12 @@ function renderDetails(i,rel){
 }
 function renderEmpty(){
   updRel(null);
-  plate.classList.add('empty');pkind.textContent='Владивосток';pname.textContent='Выберите улицу на карте';
-  details.innerHTML=`<p class="meta">Наведите на улицу — подсветятся её «родственницы» по смыслу названия: с той же подтемой, тематикой или группой (выбор выше). Нажатие закрепляет выбор, Esc или нажатие на пустое место снимает его. Цвет линии — группа названия.</p>`;
+  plate.classList.add('empty');pkind.textContent='Владивосток';setName('Выберите улицу на карте');
+  details.innerHTML=''; syncView();
 }
-document.getElementById('relseg').addEventListener('click',e=>{
+const relseg=document.getElementById('relseg');
+document.getElementById('back').addEventListener('click',()=>clearPin());
+relseg.addEventListener('click',e=>{
   const m=e.target.closest('[data-m]'); if(!m)return; relMode=m.dataset.m;
   document.querySelectorAll('#relseg [data-m]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===relMode)));
   if(pinned!=null)showStreet(pinned);
@@ -453,7 +492,7 @@ let curHover=null; gHit.addEventListener('pointerover',e=>{curHover=+e.target.da
 // ---------- houses layer (ФКР, V4)
 const HD=DATA.houses||null;
 const hcv=document.getElementById('houses'), hctx=hcv.getContext('2d');
-const hToggle=document.getElementById('htoggle'), hLegendEl=document.getElementById('hlegend'),
+const hModeRadios=document.querySelectorAll('input[name="hcolormode"]'),
       hCount=document.getElementById('hcount'), hGrad=document.getElementById('hgrad'),
       hy0=document.getElementById('hy0'), hy1=document.getElementById('hy1'),
       hLegYear=document.getElementById('hleg-year'), hLegStreet=document.getElementById('hleg-street');
@@ -462,7 +501,7 @@ let cumulYear=null;      // текущий год анимации роста (n
 const H_LASTYEAR=D1+9;   // финал анимации «к 2029»: дома без года появляются здесь
 const hByStreet={};
 if(HD)HD.houses.forEach(h=>{if(h[5]!=null){const k=HD.street_names[h[5]];(hByStreet[k]=hByStreet[k]||[]).push(h);}});
-let hColorMode='year'; // 'year' — десятилетие постройки, 'street' — группа улицы
+let hColorMode='street'; // 'year' — десятилетие постройки, 'street' — группа улицы
 const hStreetGi=HD?HD.street_names.map(n=>{const ids=byName[n];return ids&&ids.length?F[ids[0]].gi:-1;}):[];
 function giPalette(){
   const cs=getComputedStyle(document.documentElement);
@@ -504,7 +543,23 @@ function drawHouses(){
     hctx.arc(px,py,rad,0,6.2832);
     hctx.fill();
   }
+  drawnSel=houseOpen;
+  const cs=getComputedStyle(document.documentElement), halo=cs.getPropertyValue('--halo').trim(), ink=cs.getPropertyValue('--ink').trim();
+  if(hoverHouse>=0&&houseVisible(HD.houses[hoverHouse])){ // дом под курсором — крупная точка с ореолом, как улица
+    const h=HD.houses[hoverHouse], px=(h[0]-view.x)*sx, py=(h[1]-view.y)*sy;
+    hctx.beginPath();hctx.arc(px,py,5.5,0,6.2832);hctx.fillStyle=houseColor(h,pal);hctx.fill();
+    hctx.lineWidth=3;hctx.strokeStyle=halo;hctx.stroke();
+    hctx.beginPath();hctx.arc(px,py,7,0,6.2832);hctx.lineWidth=1.5;hctx.strokeStyle=ink;hctx.stroke();
+  }
+  if(houseOpen!=null&&houseVisible(HD.houses[houseOpen])){ // выбранный дом — кольцо с ореолом
+    const h=HD.houses[houseOpen], px=(h[0]-view.x)*sx, py=(h[1]-view.y)*sy;
+    hctx.lineWidth=5;hctx.strokeStyle=halo;hctx.beginPath();hctx.arc(px,py,7,0,6.2832);hctx.stroke();
+    hctx.lineWidth=2.5;hctx.strokeStyle=ink;hctx.beginPath();hctx.arc(px,py,7,0,6.2832);hctx.stroke();
+  }
 }
+let drawnSel=null, hoverHouse=-1;
+wrap.addEventListener('pointerleave',()=>{wrap.classList.remove('onhouse');if(hoverHouse>=0){hoverHouse=-1;drawHouses();hideTip();}});
+function houseTip(h){const y=h[6]!=null?h[6]:(h[2]>=0?HD.decades[h[2]]+'-е':'год неизвестен');return (h[7]||'').replace(/^г\. Владивосток, /,'')+' · '+y;}
 function houseAt(cx,cy){
   if(!housesOn||!HD)return -1;
   const r=wrap.getBoundingClientRect(), sx=r.width/view.w, sy=r.height/view.h;
@@ -523,19 +578,19 @@ function showHouse(i,e){
   const year=h[6]!=null?h[6]:(h[2]>=0?HD.decades[h[2]]+'-е':'—');
   const mat=h[3]>=0?HD.materials[h[3]]:'материал не указан';
   const fl=h[4]>0?h[4]:null;
-  plate.classList.remove('empty'); pkind.textContent='дом (ФКР)';
-  pname.textContent=h[7]||(h[5]!=null?HD.street_names[h[5]]:'адрес неизвестен');
-  details.innerHTML='<p class="crumbs"><span class="sw" style="background:'+houseColor(h,giPalette())+'"></span>Слой «Дома (год постройки)»</p>'
-    +'<p class="meta">Год постройки: <b>'+year+(h[2]>=0?' ('+HD.decades[h[2]]+'-е)':'')+'</b></p>'
+  plate.classList.remove('empty'); pkind.textContent='дом (ФКР)'; relseg.hidden=true;
+  setName((h[7]||(h[5]!=null?HD.street_names[h[5]]:'адрес неизвестен')).replace(/^г\. Владивосток, /,''),true);
+  const sn=h[5]!=null?HD.street_names[h[5]]:null, sgi=sn!=null?hStreetGi[h[5]]:-1;
+  details.innerHTML=(sn!=null&&byName[sn]?'<p class="meta">Улица: <span class="sw" style="background:var(--g'+sgi+')"></span><button class="link" data-n="'+esc(sn)+'">'+esc(sn)+'</button></p>':'')
+    +'<p class="meta">Год постройки: <span class="sw" style="background:'+(h[2]>=0?decColor(h[2]):'#9a9a9a')+'"></span><b>'+year+(h[2]>=0&&h[6]!=null?' ('+HD.decades[h[2]]+'-е)':'')+'</b></p>'
     +'<p class="meta">Материал стен: <b>'+esc(mat)+'</b></p>'
     +(fl?'<p class="meta">Этажей: <b>'+fl+'</b></p>':'')
-    +(h[5]!=null?'<p class="meta">Улица карты: <b>'+esc(HD.street_names[h[5]])+'</b></p>'
-                :'<p class="warn">Дом не сопоставлен с улицами карты (нет связи по названию).</p>');
-  showTip(e,(h[7]||'')+' · '+year+' · '+mat+(fl?' · '+fl+' эт.':''));
+    +(sn!=null&&byName[sn]?'':'<p class="warn">Дом не сопоставлен с улицами карты (нет связи по названию).</p>');
+  if(e)showTip(e,(h[7]||'')+' · '+year+' · '+mat+(fl?' · '+fl+' эт.':''));
 }
 function syncHLegend(){
-  hLegYear.hidden=hColorMode!=='year';
-  hLegStreet.hidden=hColorMode!=='street';
+  hLegYear.hidden=!housesOn||hColorMode!=='year';
+  hLegStreet.hidden=!housesOn||hColorMode!=='street';
 }
 if(HD){
   hCount.textContent=HD.houses.length+' домов';
@@ -547,25 +602,20 @@ if(HD){
     html+='<div class="hsrow"><span class="sw" style="background:#9a9a9a"></span>без улицы карты — '+un+'</div>';
     hLegStreet.innerHTML=html;
   }
-  hToggle.addEventListener('change',()=>{
-    housesOn=hToggle.checked;
-    hLegendEl.hidden=!housesOn;
-    hcv.style.display=housesOn?'block':'none';
-    if(housesOn){
-      const n=HD.decades.length;
-      hGrad.style.background='linear-gradient(90deg,'+decColor(0)+','+decColor(Math.floor(n/2))+','+decColor(n-1)+')';
-      hy0.textContent=HD.decades[0]+'-е'; hy1.textContent=HD.decades[n-1]+'-е';
-      syncHLegend();
-      drawHouses();
-    } else { hideTip(); restore(); }
-  });
-  document.querySelectorAll('input[name="hcolormode"]').forEach(r=>r.addEventListener('change',()=>{
+  { const n=HD.decades.length;
+    hGrad.style.background='linear-gradient(90deg,'+decColor(0)+','+decColor(Math.floor(n/2))+','+decColor(n-1)+')';
+    hy0.textContent=HD.decades[0]+'-е'; hy1.textContent=HD.decades[n-1]+'-е'; }
+  // «нет» — слой выключен; «по году» / «по улице» — слой включён с этой раскраской
+  hModeRadios.forEach(r=>r.addEventListener('change',()=>{
     if(!r.checked)return;
-    hColorMode=r.value; syncHLegend(); drawHouses();
+    const wasOn=housesOn; housesOn=r.value!=='off'; if(housesOn)hColorMode=r.value;
+    hcv.style.display=housesOn?'block':'none'; syncHLegend();
+    if(housesOn){drawHouses(); if(!wasOn&&pinned!=null)showStreet(pinned);}
+    else{hideTip();hoverHouse=-1;wrap.classList.remove('onhouse');houseOpen=null;restore();}
   }));
   // смена системной темы — перекрасить уже нарисованные дома
   if(window.matchMedia)matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{if(housesOn)drawHouses();});
-} else { hToggle.disabled=true; hCount.textContent='нет данных'; }
+} else { hModeRadios.forEach(r=>r.disabled=true); hCount.textContent='нет данных'; }
 
 // ---------- legend
 const legend=document.getElementById('legend'); let legendPinned=null;
@@ -575,14 +625,21 @@ GROUPS.forEach((g,gi)=>{
   legend.appendChild(li);
 });
 function showGroup(gi){showSet(byKey.group[GROUPS[gi]]||[]);markDecade(null);
-  plate.classList.add('empty');pkind.textContent='группа';pname.textContent=GROUPS[gi];
+  plate.classList.add('empty');pkind.textContent='группа';setName(GROUPS[gi]);
   const cats={};(byKey.group[GROUPS[gi]]||[]).forEach(j=>{cats[F[j].c]=(cats[F[j].c]||0)+1;});
   details.innerHTML=`<p class="meta">${Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,n])=>`${esc(c)}: <b>${n}</b>`).join('<br>')}</p>`;}
-legend.addEventListener('pointerover',e=>{const b=e.target.closest('[data-g]');if(b&&pinned==null)showGroup(+b.dataset.g);});
-legend.addEventListener('pointerleave',()=>restore());
+// группа под курсором — синхронно в легенде сайдбара и в сегментах таймлайна
+function linkGroup(gi){
+  legend.querySelectorAll('[data-g]').forEach(b=>b.classList.toggle('hov',+b.dataset.g===gi));
+  bars.classList.toggle('gfocus',gi!=null);
+  bars.querySelectorAll('.seg-g').forEach(s=>s.classList.toggle('gon',+s.dataset.g===gi));
+}
+legend.addEventListener('pointerover',e=>{const b=e.target.closest('[data-g]');if(!b)return;if(!playing)linkGroup(+b.dataset.g);if(pinned==null)showGroup(+b.dataset.g);});
+legend.addEventListener('pointerleave',()=>{linkGroup(null);restore();});
 legend.addEventListener('click',e=>{const b=e.target.closest('[data-g]');if(!b)return;const gi=+b.dataset.g;
   if(legendPinned===gi){legendPinned=null;}else{pinned=null;decPinned=null;legendPinned=gi;fitTo(byKey.group[GROUPS[gi]]||[]);} syncPressed(); restore();});
-function syncPressed(){legend.querySelectorAll('[data-g]').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.g===legendPinned)));
+function syncPressed(){houseOpen=null; // любое закрепление снимает открытый дом
+  legend.querySelectorAll('[data-g]').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.g===legendPinned)));
   bars.querySelectorAll('.bar').forEach(b=>b.classList.toggle('on',+b.dataset.d===decPinned));}
 
 // ---------- timeline
@@ -595,7 +652,7 @@ decs.forEach(d=>{
   b.setAttribute('role','button');b.setAttribute('aria-label',`${d}-е: ${ids.length} ${plural(ids.length,'улица','улицы','улиц')}`);
   const cnt=GROUPS.map(()=>0);ids.forEach(i=>cnt[F[i].gi]++);
   const H=78; // px for max
-  cnt.forEach((c,gi)=>{if(!c)return;const s=document.createElement('div');s.className='seg-g';s.style.height=(c/maxN*H)+'px';s.style.background=`var(--g${gi})`;b.appendChild(s);});
+  cnt.forEach((c,gi)=>{if(!c)return;const s=document.createElement('div');s.className='seg-g';s.dataset.g=gi;s.style.height=(c/maxN*H)+'px';s.style.background=`var(--g${gi})`;b.appendChild(s);});
   const lab=document.createElement('span');lab.className='lab';lab.textContent=(d%20===0||d===D1)?String(d):'';b.appendChild(lab);
   bars.appendChild(b);
 });
@@ -604,12 +661,20 @@ function decText(d){const ids=byDec[d]||[];const cnt=GROUPS.map(()=>0);ids.forEa
   const top=cnt.map((c,gi)=>[c,gi]).filter(x=>x[0]).sort((a,b)=>b[0]-a[0]).slice(0,2).map(([c,gi])=>`${GSHORT[gi].toLowerCase()} ${c}`).join(', ');
   return `<strong>${d}-е: ${ids.length}</strong>${top}`;}
 function showDecade(d){showSet(byDec[d]||[]);markDecade(d);tlinfo.innerHTML=decText(d);
-  plate.classList.add('empty');pkind.textContent='десятилетие';pname.textContent=`${d}-е годы`;
+  plate.classList.add('empty');pkind.textContent='десятилетие';setName(`${d}-е годы`);
   const ids=byDec[d]||[];const names=[...new Set(ids.map(j=>F[j].n))].sort((a,b)=>(F[byName[a][0]].y-F[byName[b][0]].y));
   details.innerHTML=`<p class="meta">${ids.length} ${plural(ids.length,'улица получила','улицы получили','улиц получили')} нынешнее название в эти годы.</p>${frameNote(ids)}<div class="chips">${names.slice(0,24).map(n=>`<button data-n="${esc(n)}">${esc(splitName(n).name)} <span style="color:var(--ink-2)">${F[byName[n][0]].y}</span></button>`).join('')}${names.length>24?`<span class="more">и ещё ${names.length-24}</span>`:''}</div>`;}
 function markDecade(d){bars.querySelectorAll('.bar').forEach(b=>b.classList.toggle('mark',d!=null&&+b.dataset.d===d));}
-bars.addEventListener('pointerover',e=>{const b=e.target.closest('.bar');if(b&&!playing&&pinned==null)showDecade(+b.dataset.d);});
-bars.addEventListener('pointerleave',()=>{if(!playing){tlinfo.innerHTML='<strong>Годы названий</strong>Наведите или нажмите на десятилетие';restore();}});
+bars.addEventListener('pointerover',e=>{const b=e.target.closest('.bar');if(!b||playing)return;
+  const sg=e.target.closest('.seg-g'), d=+b.dataset.d, gi=sg?+sg.dataset.g:null;
+  linkGroup(gi);
+  if(pinned!=null)return;
+  if(gi==null){showDecade(d);return;}
+  // сегмент: улицы этой группы, получившие название в этом десятилетии
+  const ids=(byDec[d]||[]).filter(i=>F[i].gi===gi);
+  showSet(ids);markDecade(d);tlinfo.innerHTML=`<strong>${d}-е: ${ids.length} из ${(byDec[d]||[]).length}</strong>${esc(GSHORT[gi].toLowerCase())}`;
+});
+bars.addEventListener('pointerleave',()=>{linkGroup(null);if(!playing){tlinfo.innerHTML='<strong>Годы названий</strong>Наведите или нажмите на десятилетие';restore();}});
 bars.addEventListener('click',e=>{const b=e.target.closest('.bar');if(!b)return;stopPlay();const d=+b.dataset.d;
   if(decPinned===d)decPinned=null;else{decPinned=d;pinned=null;legendPinned=null;fitTo(byDec[d]||[]);} syncPressed();restore();});
 bars.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.target.click();}});
