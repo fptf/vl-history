@@ -105,6 +105,57 @@ print('houses', 'yes' if houses_seg else 'NO')
 W_IN=os.path.join(HERE,'water.json')
 water_seg=json.load(open(W_IN,encoding='utf-8')) if os.path.exists(W_IN) else None
 print('water', 'yes' if water_seg else 'NO')
+# T-013: местность линии — по координатам, а не по полю part (оно ненадёжно: 26 линий на о. Русском помечены mainland).
+# Острова — по кольцам суши из water.json (точка середины линии внутри кольца); кольцо острова получает метку
+# большинством голосов part его линий. На материке part надёжен: peschany / trudovoe / прочее = город.
+# Коды: r — о. Русский, p — о. Попова, k — о. Рейнеке, s — п-ов Песчаный, t — Трудовое, '' — город.
+PART_LOC={'russky':'r','popova':'p','reineke':'k','peschany':'s','trudovoe':'t'}
+def path_pts(d):
+    pts=[];x=y=0
+    for cmd,a_,b_ in re.findall(r'([Ml])(-?\d+) (-?\d+)',d):
+        a_,b_=int(a_),int(b_)
+        if cmd=='M':x,y=a_,b_
+        else:x+=a_;y+=b_
+        pts.append((x,y))
+    return pts
+def pip(pt,r):
+    x,y=pt;ins=False;n=len(r)
+    for i in range(n):
+        x1,y1=r[i];x2,y2=r[(i+1)%n]
+        if (y1>y)!=(y2>y) and x<(x2-x1)*(y-y1)/(y2-y1)+x1:ins=not ins
+    return ins
+def ring_area(r):return abs(sum(r[i][0]*r[(i+1)%len(r)][1]-r[(i+1)%len(r)][0]*r[i][1] for i in range(len(r))))/2
+rings=[path_pts(sp) for sp in re.findall(r'M[^M]*',water_seg['d'])[1:]] if water_seg else []
+main_ring=max(range(len(rings)),key=lambda k:ring_area(rings[k])) if rings else None
+def ring_of(pt):
+    ins=[k for k,r in enumerate(rings) if pip(pt,r)]
+    return min(ins,key=lambda k:ring_area(rings[k])) if ins else None
+line_pts=[path_pts(o['d']) for o in out]
+line_ring=[ring_of(P[len(P)//2]) for P in line_pts]
+votes=collections.defaultdict(collections.Counter)
+for o,k in zip(out,line_ring):
+    if k is not None and k!=main_ring and PART_LOC.get(o['pt']):votes[k][PART_LOC[o['pt']]]+=1
+ring_loc={k:c.most_common(1)[0][0] for k,c in votes.items()}
+n_fixed=0
+for o,k in zip(out,line_ring):
+    loc=ring_loc.get(k) if (k is not None and k!=main_ring) else None
+    if loc is None:loc=PART_LOC.get(o['pt'],'') if o['pt'] in ('peschany','trudovoe') else ('' if rings else PART_LOC.get(o['pt'],''))
+    if loc!=PART_LOC.get(o['pt'],''):n_fixed+=1
+    if loc:o['l']=loc
+print('locality: fixed vs part',n_fixed,collections.Counter(o.get('l','') for o in out))
+# дома одноимённых улиц: к линии того же названия, ближайшей к дому (код местности — h[8])
+by_name_loc=collections.defaultdict(set)
+for o in out:by_name_loc[o['n']].add(o.get('l',''))
+if houses_seg:
+    names=houses_seg['street_names'];n_amb=0
+    for h in houses_seg['houses']:
+        if h[5] is None:continue
+        nm=names[h[5]]
+        if len(by_name_loc.get(nm,()))<2:continue
+        best=min((min((h[0]-x)**2+(h[1]-y)**2 for x,y in line_pts[i]),out[i].get('l','')) for i,o in enumerate(out) if o['n']==nm)
+        while len(h)<8:h.append(None)
+        h[8:]=[best[1]];n_amb+=1
+    print('houses on same-named streets',n_amb)
 cp=[]
 for c in capes:
     x,y=proj(c['geometry']['coordinates']); cp.append([round(x),round(y),c['properties']['name']])

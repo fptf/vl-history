@@ -304,6 +304,12 @@ F.forEach((f,i)=>{
   (byName[f.n]=byName[f.n]||[]).push(i);
   if(f.y!=null){const d=Math.max(D0,Math.min(D1,Math.floor(f.y/10)*10));f.dec=d;(byDec[d]=byDec[d]||[]).push(i);}
 });
+// T-013: улица = название + местность (одноимённые в разных местах — разные улицы).
+// f.l — код местности из prep.py; f.k — ключ улицы: у одноимённых к названию добавляется место.
+const LOCN={r:'о. Русский',p:'о. Попова',k:'о. Рейнеке',s:'п-ов Песчаный',t:'Трудовое','':'город'};
+const nameLocs={}; F.forEach(f=>{(nameLocs[f.n]=nameLocs[f.n]||new Set()).add(f.l||'');});
+const streetKey=(n,l)=>nameLocs[n]&&nameLocs[n].size>1?n+' · '+LOCN[l||'']:n;
+const byStreet={}; F.forEach((f,i)=>{f.k=streetKey(f.n,f.l);(byStreet[f.k]=byStreet[f.k]||[]).push(i);});
 const keyOf=(f,m)=>m==='group'?f.g:m==='cat'?f.g+'|'+f.c:f.g+'|'+f.c+'|'+f.s;
 
 // ---------- draw
@@ -416,7 +422,7 @@ function showStreet(i){
   updRel(i);
   clearCumul(); clearHL();
   const rel=related(i); hlSet=rel.slice(); rel.forEach(j=>paths[j].classList.add('hl'));
-  const same=byName[F[i].n]; drawMain(same);
+  const same=byStreet[F[i].k]; drawMain(same);
   svg.classList.add('focus'); markDecade(F[i].dec); renderDetails(i,rel);
 }
 function showSet(ids,mainIds){
@@ -474,8 +480,8 @@ function frameNote(ids){let k=0;ids.forEach(i=>{const b=paths[i].getBBox();if(b.
 // hover on map
 const somethingPinned=()=>pinned!=null||houseOpen!=null||legendPinned!=null||decPinned!=null;
 gHit.addEventListener('pointerover',e=>{if(moved&&dragStart)return;const i=+e.target.dataset.i;if(e.pointerType!=='touch'){if(houseAt(e.clientX,e.clientY)>=0)return; // дом поверх улицы — приоритет у дома
-  if(!somethingPinned()){hovered=i;showStreet(i);syncView();}showTip(e,F[i].n);}});
-gHit.addEventListener('pointermove',e=>{if(e.pointerType!=='touch'&&!(moved&&dragStart))showTip(e,F[+e.target.dataset.i].n);});
+  if(!somethingPinned()){hovered=i;showStreet(i);syncView();}showTip(e,F[i].k);}});
+gHit.addEventListener('pointermove',e=>{if(e.pointerType!=='touch'&&!(moved&&dragStart))showTip(e,F[+e.target.dataset.i].k);});
 gHit.addEventListener('pointerout',e=>{if(e.pointerType==='touch')return;const was=hovered;hovered=null;hideTip();if(was!=null)restore();});
 function showTip(e,t){const r=wrap.getBoundingClientRect();tip.textContent=t;tip.style.left=(e.clientX-r.left)+'px';tip.style.top=(e.clientY-r.top)+'px';tip.style.display='block';}
 function hideTip(){tip.style.display='none';}
@@ -516,24 +522,25 @@ function updRel(i){
     const v=document.getElementById('rv-'+m), n=document.getElementById('rn-'+m);
     if(i==null){v.textContent=G[m];v.title='';n.textContent='';return;}
     const f=F[i], val=m==='sub'?f.s:m==='cat'?f.c:f.g; v.textContent=val; v.title=val;
-    const s=new Set((byKey[m][keyOf(f,m)]||[]).map(j=>F[j].n)); s.delete(f.n); n.textContent=s.size;
+    const s=new Set((byKey[m][keyOf(f,m)]||[]).map(j=>F[j].k)); s.delete(f.k); n.textContent=s.size;
   });
 }
 function plural(n,a,b,c){n=Math.abs(n)%100;const m=n%10;if(n>10&&n<20)return c;if(m>1&&m<5)return b;if(m===1)return a;return c;}
 function renderDetails(i,rel){
   const f=F[i], sp=splitName(f.n);
-  plate.classList.remove('empty'); pkind.textContent=sp.kind||'улица'; setName(sp.name,true);
+  plate.classList.remove('empty'); pkind.textContent=(sp.kind||'улица')+(f.l?' · '+LOCN[f.l]:''); setName(sp.name,true);
   relseg.hidden=false; relseg.style.setProperty('--gc','var(--g'+f.gi+')');
-  const names=[...new Set(rel.map(j=>F[j].n))].filter(n=>n!==f.n).sort((a,b)=>splitName(a).name.localeCompare(splitName(b).name,'ru'));
+  const names=[...new Set(rel.map(j=>F[j].k))].filter(n=>n!==f.k).sort((a,b)=>splitName(a).name.localeCompare(splitName(b).name,'ru'));
   const yr=f.y!=null?`<b>${f.y}</b>${f.yd?' — '+esc(f.yd):''}`:'год неизвестен';
   let hSum='';
-  if(HD&&housesOn){const hs=hByStreet[f.n];
+  if(HD&&housesOn){const hs=hByStreet[f.k];
     if(hs&&hs.length){const ys=hs.map(h=>h[6]).filter(y=>y!=null);
       const mc={};hs.forEach(h=>{if(h[3]>=0){const m=HD.materials[h[3]];mc[m]=(mc[m]||0)+1;}});
       const top=Object.entries(mc).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([m,c])=>esc(m)+' — '+c).join(', ');
       hSum='<p class="meta">Дома ФКР на этой улице: <b>'+hs.length+'</b>'+(ys.length?', постройка <b>'+Math.min(...ys)+'–'+Math.max(...ys)+'</b>':'')+(top?', материалы: '+top:'')+'.</p>';}}
   details.innerHTML=`
     ${f.o?`<p class="meta">${esc(f.o)}</p>`:''}
+    ${twins(f)}
     <p class="meta">Название присвоено: ${yr}</p>
     ${srcLine(f)}
     ${hSum}
@@ -541,6 +548,9 @@ function renderDetails(i,rel){
     <div class="rel-head"><p>${names.length} ${plural(names.length,'улица','улицы','улиц')} той же ${relLabel[relMode]}</p></div>
     <div class="chips">${chipList(names.map(n=>`<button data-n="${esc(n)}">${esc(splitName(n).name)}</button>`),16)}</div>`;
 }
+// одноимённые улицы в других местах — ссылками
+function twins(f){const o=Object.keys(byStreet).filter(k=>k!==f.k&&F[byStreet[k][0]].n===f.n);
+  return o.length?`<p class="meta">Одноимённая улица есть ещё: ${o.map(k=>`<button class="link" data-n="${esc(k)}">${esc(LOCN[F[byStreet[k][0]].l||''])}</button>`).join(', ')}</p>`:'';}
 function renderEmpty(){
   updRel(null);
   plate.classList.add('empty');pkind.textContent='Владивосток';setName('Выберите улицу на карте');
@@ -555,7 +565,7 @@ relseg.addEventListener('click',e=>{
 });
 details.addEventListener('click',e=>{
   const mo=e.target.closest('[data-more]'); if(mo){mo.parentNode.querySelectorAll('button[hidden]').forEach(b=>b.hidden=false);mo.remove();return;}
-  const c=e.target.closest('[data-n]'); if(c){select(byName[c.dataset.n][0],true);}
+  const c=e.target.closest('[data-n]'); if(c){select(byStreet[c.dataset.n][0],true);}
 });
 let curHover=null; gHit.addEventListener('pointerover',e=>{curHover=+e.target.dataset.i});
 
@@ -570,7 +580,9 @@ let housesOn=false;
 let cumulYear=null;      // текущий год анимации роста (null — обычный режим: все дома)
 const H_LASTYEAR=D1+9;   // финал анимации «к 2029»: дома без года появляются здесь
 const hByStreet={};
-if(HD)HD.houses.forEach(h=>{if(h[5]!=null){const k=HD.street_names[h[5]];(hByStreet[k]=hByStreet[k]||[]).push(h);}});
+// ключ улицы дома: у одноимённых — с местностью ближайшей линии (h[8] из prep.py)
+const houseKey=h=>h[5]==null?null:h.length>8?streetKey(HD.street_names[h[5]],h[8]):HD.street_names[h[5]];
+if(HD)HD.houses.forEach(h=>{const k=houseKey(h);if(k)(hByStreet[k]=hByStreet[k]||[]).push(h);});
 let hColorMode='street'; // 'year' — десятилетие постройки, 'street' — группа улицы
 const hStreetGi=HD?HD.street_names.map(n=>{const ids=byName[n];return ids&&ids.length?F[ids[0]].gi:-1;}):[];
 function giPalette(){
@@ -650,12 +662,12 @@ function showHouse(i,e){
   const fl=h[4]>0?h[4]:null;
   plate.classList.remove('empty'); pkind.textContent='дом (ФКР)'; relseg.hidden=true;
   setName((h[7]||(h[5]!=null?HD.street_names[h[5]]:'адрес неизвестен')).replace(/^г\. Владивосток, /,''),true);
-  const sn=h[5]!=null?HD.street_names[h[5]]:null, sgi=sn!=null?hStreetGi[h[5]]:-1;
-  details.innerHTML=(sn!=null&&byName[sn]?'<p class="meta">Улица: <span class="sw" style="background:var(--g'+sgi+')"></span><button class="link" data-n="'+esc(sn)+'">'+esc(sn)+'</button></p>':'')
+  const sn=houseKey(h), sgi=h[5]!=null?hStreetGi[h[5]]:-1;
+  details.innerHTML=(sn!=null&&byStreet[sn]?'<p class="meta">Улица: <span class="sw" style="background:var(--g'+sgi+')"></span><button class="link" data-n="'+esc(sn)+'">'+esc(sn)+'</button></p>':'')
     +'<p class="meta">Год постройки: <span class="sw" style="background:'+(h[2]>=0?decColor(h[2]):'#9a9a9a')+'"></span><b>'+year+(h[2]>=0&&h[6]!=null?' ('+HD.decades[h[2]]+'-е)':'')+'</b></p>'
     +'<p class="meta">Материал стен: <b>'+esc(mat)+'</b></p>'
     +(fl?'<p class="meta">Этажей: <b>'+fl+'</b></p>':'')
-    +(sn!=null&&byName[sn]?'':'<p class="warn">Дом не сопоставлен с улицами карты (нет связи по названию).</p>');
+    +(sn!=null&&byStreet[sn]?'':'<p class="warn">Дом не сопоставлен с улицами карты (нет связи по названию).</p>');
   if(e)showTip(e,(h[7]||'')+' · '+year+' · '+mat+(fl?' · '+fl+' эт.':''));
 }
 function syncHLegend(){
@@ -732,8 +744,8 @@ function decText(d){const ids=byDec[d]||[];const cnt=GROUPS.map(()=>0);ids.forEa
   return `<strong>${d}-е: ${ids.length}</strong>${top}`;}
 function showDecade(d){showSet(byDec[d]||[]);markDecade(d);tlinfo.innerHTML=decText(d);
   plate.classList.add('empty');pkind.textContent='десятилетие';setName(`${d}-е годы`);
-  const ids=byDec[d]||[];const names=[...new Set(ids.map(j=>F[j].n))].sort((a,b)=>(F[byName[a][0]].y-F[byName[b][0]].y));
-  details.innerHTML=`<p class="meta">${ids.length} ${plural(ids.length,'улица получила','улицы получили','улиц получили')} нынешнее название в эти годы.</p>${frameNote(ids)}<div class="chips">${chipList(names.map(n=>`<button data-n="${esc(n)}">${esc(splitName(n).name)} <span style="color:var(--ink-2)">${F[byName[n][0]].y}</span></button>`),24)}</div>`;}
+  const ids=byDec[d]||[];const names=[...new Set(ids.map(j=>F[j].k))].sort((a,b)=>(F[byStreet[a][0]].y-F[byStreet[b][0]].y));
+  details.innerHTML=`<p class="meta">${ids.length} ${plural(ids.length,'улица получила','улицы получили','улиц получили')} нынешнее название в эти годы.</p>${frameNote(ids)}<div class="chips">${chipList(names.map(n=>`<button data-n="${esc(n)}">${esc(splitName(n).name)} <span style="color:var(--ink-2)">${F[byStreet[n][0]].y}</span></button>`),24)}</div>`;}
 function markDecade(d){bars.querySelectorAll('.bar').forEach(b=>b.classList.toggle('mark',d!=null&&+b.dataset.d===d));}
 bars.addEventListener('pointerover',e=>{const b=e.target.closest('.bar');if(!b||playing)return;
   const sg=e.target.closest('.seg-g'), d=+b.dataset.d, gi=sg?+sg.dataset.g:null;
@@ -794,12 +806,12 @@ playBtn.onclick=()=>{
 
 // ---------- search
 const dl=document.getElementById('names'), q=document.getElementById('q'), qmsg=document.getElementById('qmsg');
-Object.keys(byName).sort((a,b)=>a.localeCompare(b,'ru')).forEach(n=>{const o=document.createElement('option');o.value=n;dl.appendChild(o);});
+Object.keys(byStreet).sort((a,b)=>a.localeCompare(b,'ru')).forEach(n=>{const o=document.createElement('option');o.value=n;dl.appendChild(o);});
 function doSearch(){
   const v=q.value.trim().toLowerCase().replace(/ё/g,'е'); if(!v){qmsg.textContent='';return;}
   const norm=s=>s.toLowerCase().replace(/ё/g,'е');
-  let hit=Object.keys(byName).find(n=>norm(n)===v)||Object.keys(byName).find(n=>norm(n).includes(v));
-  if(hit){qmsg.textContent='';select(byName[hit][0],true);} else qmsg.textContent='Такой улицы на карте нет. Попробуйте другое написание.';
+  let hit=Object.keys(byStreet).find(n=>norm(n)===v)||Object.keys(byStreet).find(n=>norm(n).includes(v));
+  if(hit){qmsg.textContent='';select(byStreet[hit][0],true);} else qmsg.textContent='Такой улицы на карте нет. Попробуйте другое написание.';
 }
 q.addEventListener('change',doSearch);
 q.addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
