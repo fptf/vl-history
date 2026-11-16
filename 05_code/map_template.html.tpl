@@ -260,7 +260,7 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
         <div id="hlegend">
           <div class="hrow hcolor" aria-label="Показ домов на карте">
             <span>Показать:</span>
-            <span class="hradio" id="hmode" role="radiogroup"><button type="button" role="radio" data-v="off" aria-pressed="true" aria-checked="true">нет</button><button type="button" role="radio" data-v="street" aria-pressed="false" aria-checked="false">по улице</button><button type="button" role="radio" data-v="year" aria-pressed="false" aria-checked="false">по году</button></span>
+            <span class="hradio" id="hmode" role="radiogroup"><button type="button" role="radio" data-v="off" aria-pressed="false" aria-checked="false">нет</button><button type="button" role="radio" data-v="street" aria-pressed="true" aria-checked="true">по улице</button><button type="button" role="radio" data-v="year" aria-pressed="false" aria-checked="false">по году</button></span>
           </div>
           <div id="hleg-year" hidden>
             <div class="hgrad" id="hgrad"></div>
@@ -589,7 +589,7 @@ const hNote=document.getElementById('hnote'), hModeSeg=document.getElementById('
       hCount=document.getElementById('hcount'), hGrad=document.getElementById('hgrad'),
       hy0=document.getElementById('hy0'), hy1=document.getElementById('hy1'),
       hLegYear=document.getElementById('hleg-year'), hLegStreet=document.getElementById('hleg-street');
-let housesOn=false; // слой домов по умолчанию выключен («нет»); цвет при включении — «по улице»
+let housesOn=!!HD; // слой домов по умолчанию включён, раскраска «по улице»
 let cumulYear=null;      // текущий год анимации роста (null — обычный режим: все дома)
 const H_LASTYEAR=D1+9;   // финал анимации «к 2029»: дома без года появляются здесь
 const hByStreet={};
