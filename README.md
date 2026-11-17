@@ -20,7 +20,9 @@
 
 ## Быстрый старт
 
-Скачайте один файл и откройте в браузере: [`04_prototype/vladivostok-streets-map.html`](04_prototype/vladivostok-streets-map.html) (~745 КБ).
+Онлайн: **https://fptf.github.io/vl-history/**
+
+Офлайн: скачайте [`04_prototype/vladivostok-streets-map.html`](04_prototype/vladivostok-streets-map.html) (~800 КБ) и откройте в браузере. Контуры зданий OSM лежат рядом, в [`vladivostok-streets-map.buildings.js`](04_prototype/vladivostok-streets-map.buildings.js) (~2,5 МБ), и подгружаются при приближении; без этого файла дома показываются точками.
 
 ```bash
 git clone https://github.com/fptf/vl-history.git
@@ -34,7 +36,7 @@ pip install -r 05_code/requirements.txt
 bash 05_code/build.sh
 ```
 
-Внутри: `classify.py` строит классификацию, `build.py` пишет xlsx, `houses_prep.py` готовит дома из `buildings/ФКР_дома_с_координатами.csv`, `prep.py` собирает `data.json` из geojson + домов, `assemble.py` подставляет данные в шаблон. Сборка воспроизводима бит-в-бит (допустимое расхождение — байты xlsx от openpyxl, ячейки идентичны). Промежуточные `rows.json`/`data.json`/`houses.json` в git не входят.
+Внутри: `classify.py` строит классификацию, `build.py` пишет xlsx, `houses_prep.py` готовит дома из `02_data/ФКР_дома_с_координатами.csv`, `buildings_prep.py` — контуры зданий OSM (`04_prototype/…buildings.js`), `water_prep.py` — береговую линию, `prep.py` собирает `data.json` из geojson + домов, `assemble.py` подставляет данные в шаблон. Сборка воспроизводима бит-в-бит (допустимое расхождение — байты xlsx от openpyxl, ячейки идентичны). Промежуточные `rows.json`/`data.json`/`houses.json` в git не входят.
 
 ⚠️ Открывать в браузере нужно именно HTML-файл с диска: в предпросмотрах (Quick Look, мессенджеры, почта) JavaScript не выполняется и карта будет пустой.
 
@@ -53,12 +55,11 @@ bash 05_code/build.sh
 
 | Путь | Что это |
 |---|---|
-| `04_prototype/` | Готовая карта — один HTML-файл |
-| `02_data/` | geojson-линии, классификация CSV/xlsx, сырые списки улиц и годов |
+| `04_prototype/` | Готовая карта: HTML-файл + контуры зданий (`.buildings.js`) |
+| `02_data/` | geojson-линии, классификация CSV/xlsx, сырые списки улиц и годов, дома ФКР с координатами, здания и береговая линия OSM |
 | `05_code/` | Скрипты сборки + шаблон карты (без данных) |
-| `buildings/` | Дома ФКР с координатами (Владивостокский ГО) |
 | `06_research/` | Две волны исследования 85 спорных названий: вердикты с URL |
-| `docs/` | Скриншоты и [презентация проекта](docs/vl-history-presentation.html) (7 слайдов, QR и ссылки внутри) |
+| `docs/` | Скриншоты, [итоги исследования](docs/summary.md) и [презентация проекта](docs/vl-history-presentation.html) (7 слайдов, QR и ссылки внутри) |
 | `03_sources/` | Происхождение данных, сырые выгрузки, sha256-манифест |
 | `CHANGELOG.md` | История изменений по датам (Владивосток, UTC+10) |
 

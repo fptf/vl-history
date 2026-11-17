@@ -1,4 +1,4 @@
-# Слой домов (ФКР) для карты: buildings/ФКР_дома_с_координатами.csv -> 05_code/houses.json
+# Слой домов (ФКР) для карты: 02_data/ФКР_дома_с_координатами.csv -> 05_code/houses.json
 # Запуск: python3 05_code/houses_prep.py (пути от файла скрипта, cwd не важен).
 # houses.json и houses_geo.json в .gitignore — не коммитить.
 #
@@ -22,7 +22,7 @@ import csv, json, math, os, re, collections
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, '..')
-CSV_IN = os.path.join(ROOT, 'buildings', 'ФКР_дома_с_координатами.csv')
+CSV_IN = os.path.join(ROOT, '02_data', 'ФКР_дома_с_координатами.csv')
 STREETS = os.path.join(ROOT, '02_data', 'streets_map.geojson')
 OUT = os.path.join(HERE, 'houses.json')
 
