@@ -1,6 +1,8 @@
 # Топонимика улиц Владивостока — интерактивная карта
 
-![Карта: дома по группам улиц](docs/screenshot-houses-street.png)
+**[▶ Открыть карту — fptf.github.io/vl-history](https://fptf.github.io/vl-history/)**
+
+[![Карта: дома по группам улиц](docs/screenshot-houses-street.png)](https://fptf.github.io/vl-history/)
 
 Интерактивная **офлайн-карта одного файла**: 821 линия улиц Владивостока, раскрашенная по тематикам названий, таймлайн присвоения имён 1860–2020-е и слой **3 583 многоквартирных домов** (ФКР) с годами постройки. Без зависимостей и сборщиков — открыл HTML и работай.
 
@@ -20,7 +22,7 @@
 
 ## Быстрый старт
 
-Онлайн: **https://fptf.github.io/vl-history/**
+Онлайн: **[fptf.github.io/vl-history](https://fptf.github.io/vl-history/)** — та же карта, ссылка на этот репозиторий — внизу боковой панели.
 
 Офлайн: скачайте [`04_prototype/vladivostok-streets-map.html`](04_prototype/vladivostok-streets-map.html) (~800 КБ) и откройте в браузере. Контуры зданий OSM лежат рядом, в [`vladivostok-streets-map.buildings.js`](04_prototype/vladivostok-streets-map.buildings.js) (~2,5 МБ), и подгружаются при приближении; без этого файла дома показываются точками.
 
