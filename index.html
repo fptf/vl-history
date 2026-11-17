@@ -3,7 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Улицы Владивостока: о ком и о чём</title>
+<title>Улицы Владивостока: о ком и о чём — карта названий улиц</title>
+<meta name="description" content="Интерактивная карта 821 улицы Владивостока: в честь кого и чего названы, когда получили имя (1860–2020-е), анимация роста города и 3 583 дома с годами постройки.">
+<link rel="canonical" href="https://fptf.github.io/vl-history/">
+<meta name="theme-color" content="#f6f8f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#142632" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231b4d8c'/%3E%3Cpath d='M5 22 15 12l5 5 7-9' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='9' cy='9' r='2.5' fill='%23f0b142'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:site_name" content="Топонимика улиц Владивостока">
+<meta property="og:title" content="Улицы Владивостока: о ком и о чём">
+<meta property="og:description" content="Почему улица называется именно так: 821 улица, годы названий с 1860-х, анимация роста города и 3 583 дома с годами постройки.">
+<meta property="og:url" content="https://fptf.github.io/vl-history/">
+<meta property="og:image" content="https://fptf.github.io/vl-history/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Карта Владивостока: улицы раскрашены по тематикам названий, дома — по группам улиц">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Map","name":"Улицы Владивостока: о ком и о чём","description":"Интерактивная карта происхождения названий 821 улицы Владивостока: тематика названия, год присвоения (1860–2020-е) со ссылкой на первоисточник, анимация роста города и слой 3 583 многоквартирных домов с годами постройки.","url":"https://fptf.github.io/vl-history/","image":"https://fptf.github.io/vl-history/og-image.png","inLanguage":"ru","isAccessibleForFree":true,"spatialCoverage":{"@type":"Place","name":"Владивосток","geo":{"@type":"GeoCoordinates","latitude":43.1155,"longitude":131.8855}},"temporalCoverage":"1860/2026","isBasedOn":["https://www.openstreetmap.org/","https://github.com/skirienko/vvmap","https://fkr25.ru/"],"author":{"@type":"Person","name":"fptf","url":"https://github.com/fptf"},"subjectOf":{"@type":"SoftwareSourceCode","name":"vl-history","codeRepository":"https://github.com/fptf/vl-history","programmingLanguage":"Python"}}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -156,6 +173,7 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
 .src{font-size:12px;color:var(--ink-2);border-top:1px solid var(--line);padding-top:14px;margin-top:auto}
 .src p{margin:0 0 6px}
 .src a{color:inherit}
+.src .repo{margin:10px 0 0}
 .timeline{grid-column:1;grid-row:2;background:var(--panel);border-top:1px solid var(--line);padding:10px 14px 12px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;align-items:end}
 .tl-side{display:flex;flex-direction:column;gap:6px;align-self:stretch;justify-content:space-between;width:156px;flex:none}
 #tlinfo{height:3.9em;overflow:hidden}
@@ -239,6 +257,7 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
     <div class="grab" aria-hidden="true"></div>
     <header>
       <h1>Улицы Владивостока: о ком и о чём</h1>
+      <noscript><p class="meta">Интерактивная карта происхождения названий 821 улицы Владивостока: тематика названия, год присвоения (1860–2020-е) со ссылкой на первоисточник, анимация роста города и 3 583 дома с годами постройки. Для работы карты нужен JavaScript. Код и данные — <a href="https://github.com/fptf/vl-history">github.com/fptf/vl-history</a>.</p></noscript>
     </header>
 
     <div class="controls">
@@ -273,8 +292,9 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
       <footer class="src"><details><summary>Источники и пояснения</summary>
         <p>Геометрия улиц — © участники OpenStreetMap (ODbL), выгрузка и годы названий — открытый проект <a href="https://github.com/skirienko/vvmap" target="_blank" rel="noopener">vvmap</a>.</p>
         <p>Год — когда улица получила нынешнее название или впервые упомянута в документах. Пик 1920-х во многом даёт справочник 1924 года.</p>
-        <p>Тематическая классификация — составлена в нашем разговоре; около 5% названий помечены как требующие проверки.</p>
-      </details></footer>
+        <p>Тематическая классификация — авторская; около 5% названий помечены как требующие проверки.</p>
+      </details>
+      <p class="repo"><a href="https://github.com/fptf/vl-history" target="_blank" rel="noopener">Код, данные и источники — на GitHub</a></p></footer>
     </div>
 
   </aside>
