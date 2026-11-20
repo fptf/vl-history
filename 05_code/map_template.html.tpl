@@ -81,8 +81,8 @@ svg#map{position:relative;width:100%;height:100%;display:block} /* над хол
 #rivers path.sel{stroke-opacity:.95;stroke-width:3.5}
 #places .place{cursor:pointer}
 #places text{fill:var(--water-ink);font-style:italic;paint-order:stroke;stroke:var(--paper);stroke-linejoin:round}
-#places .pl-bay text,#places .pl-river text,#places .pl-strait text,#places .pl-island text{text-anchor:middle}
-#places .pl-island text{fill:var(--ink-2);font-style:normal;letter-spacing:.02em}
+#places .pl-bay text,#places .pl-river text,#places .pl-strait text,#places .pl-island text,#places .pl-peninsula text{text-anchor:middle}
+#places .pl-island text,#places .pl-peninsula text{fill:var(--ink-2);font-style:normal;letter-spacing:.02em}
 #places .pl-cape text{fill:var(--ink-2);font-style:normal;text-decoration:underline dotted}
 #places circle{fill:var(--ink-2)}
 #places .place.sel text{font-weight:700;fill:var(--ink)}
@@ -374,7 +374,7 @@ DATA.capes.forEach(([x,y,n])=>{
 });
 
 // ---------- T-025: бухты, реки, мысы со справками из статей (DATA.places)
-const PLACES=DATA.places||[], PKIND={bay:'бухта',river:'река',cape:'мыс',island:'остров',strait:'пролив'};
+const PLACES=DATA.places||[], PKIND={bay:'бухта',river:'река',cape:'мыс',island:'остров',strait:'пролив',peninsula:'полуостров'};
 const gRivers=document.getElementById('rivers'), gPlaces=document.getElementById('places');
 const placeEls=PLACES.map((p,k)=>{
   if(p.d){const rp=document.createElementNS(NS,'path');rp.setAttribute('d',p.d);rp.dataset.k=k;gRivers.appendChild(rp);}
@@ -524,9 +524,9 @@ function syncView(){placeEls.forEach((g,k)=>g.classList.toggle('sel',k===placeOp
 function openPlace(k,zoom){pinned=null;legendPinned=null;decPinned=null;hovered=null;syncPressed();placeOpen=k;clearHL();markDecade(null);showPlace(k);syncView();
   if(zoom){const p=PLACES[k],r=wrap.getBoundingClientRect(),ar=r.width/r.height,h=p.d?1000:700,w=h*ar;view={x:p.x-w/2,y:p.y-h/2+sheetCover()/2/r.height*h,w,h};apply();}}
 function showPlace(k){const p=PLACES[k];
-  plate.classList.remove('empty'); const pm=p.n.match(/^(бухта|река|мыс|остров|острова|пролив)\s+(.+)$/); pkind.textContent=pm?pm[1]:PKIND[p.t]; relseg.hidden=true; updRel(null);
+  plate.classList.remove('empty'); const pm=p.n.match(/^(бухта|река|мыс|остров|острова|пролив|полуостров)\s+(.+)$/); pkind.textContent=pm?pm[1]:PKIND[p.t]; relseg.hidden=true; updRel(null);
   setName(pm?pm[2]:p.n,true);
-  details.innerHTML=artLines(p)+`<p class="meta srcs">${p.t==='cape'?'Положение мыса — github.com/skirienko/vvmap':'Положение — © участники OpenStreetMap'}</p>`;}
+  details.innerHTML=artLines(p)+`<p class="meta srcs">${p.s?'Положение — '+p.s:p.t==='cape'?'Положение мыса — github.com/skirienko/vvmap':'Положение — © участники OpenStreetMap'}</p>`;}
 function openHouse(i,e){pinned=null;legendPinned=null;decPinned=null;hovered=null;syncPressed();houseOpen=i;clearHL();markDecade(null);showHouse(i,e);syncView();}
 function select(i,zoom){
   pinned=i; legendPinned=null; decPinned=null; hovered=null; syncPressed(); showStreet(i); syncView();

@@ -180,6 +180,8 @@ for pl in PJ['places']:
     assert notes,'places.json: нет справок у '+pl['name']
     if pl['kind']=='cape':
         c=cape_xy.pop(pl['name']); PL.append(dict(t='cape',n=pl['name'],x=c[0],y=c[1],a=notes)); continue
+    if 'll' in pl:  # нет в OSM: точка из проверенного источника (поле src — в карточку)
+        x,y=proj((pl['ll'][1],pl['ll'][0])); PL.append(dict(t=pl['kind'],n=pl['name'],x=round(x),y=round(y),a=notes,s=pl['src'])); continue
     els=[OP[k.strip()] for k in pl['osm'].split(',')]
     if pl['kind'] in ('bay','island','strait'):
         e=els[0]; ll=e.get('center') or {'lat':e['lat'],'lon':e['lon']}
@@ -194,7 +196,7 @@ for pl in PJ['places']:
     mx,my=best[len(best)//2]
     PL.append(dict(t='river',n=pl['name'],x=mx,y=my,d=d,a=notes))
 cp=[c for c in cp if c[2] in cape_xy]
-print('places',len(PL),{k:sum(1 for p in PL if p['t']==k) for k in ('bay','strait','island','river','cape')})
+print('places',len(PL),{k:sum(1 for p in PL if p['t']==k) for k in ('bay','strait','island','peninsula','river','cape')})
 allx=[];ally=[]
 for o in out:
     for m in re.finditer(r'M(-?\d+) (-?\d+)',o['d']): allx.append(int(m.group(1)));ally.append(int(m.group(2)))
