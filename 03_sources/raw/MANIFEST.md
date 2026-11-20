@@ -20,7 +20,7 @@
 | `03_sources/raw/fkr25/provenance/fkr_geo2.jsonl` | <internal-geocoder-host>/<internal-geocoder-endpoint>; сырые ответы геокодера, до-геокодирование | 13.11.2026 | `c3d70632664d981c…` | 63 603 |
 | `02_data/osm_coastline_raw.json` | OpenStreetMap (Overpass): береговая линия natural=coastline, bbox 42.60–43.60 / 131.30–132.60, для слоя воды (V15); ODbL | 14.11.2026 | `a20213bd4467ec0b…` | 3 058 513 |
 | `02_data/osm_buildings_vl.json` | OpenStreetMap через Geofabrik (far-eastern-fed-district, выгрузка 13.11.2026): контуры зданий Владивостокского ГО, 05_code/osm_buildings_extract.py; ODbL | 15.11.2026 | `976e4c4dfe2e85be…` | 17 634 912 |
-| `02_data/osm_places.json` | OpenStreetMap (Overpass): бухты, острова, пролив (центр объекта) и 4 реки (waterway=river, геометрия 25 way) для слоя «бухты, реки, мысы», только объекты из 06_research/places.json; 05_code/osm_places_fetch.py; ODbL | 21.11.2026 (снимок базы 20.11.2026) | `6d58b188e67dbcfa…` | 41 401 |
+| `02_data/osm_places.json` | OpenStreetMap (Overpass): бухты, острова, пролив (центр объекта) и 4 реки (waterway=river, геометрия 25 way) для слоя «бухты, реки, мысы», только объекты из 06_research/places.json; 05_code/osm_places_fetch.py; ODbL | 21.11.2026 (снимок базы 20.11.2026) | `be60d7b936155516…` | 41 565 |
 
 Полные хэши — в блоке ниже и в `SHA256SUMS` (машинный формат sha256sum).
 
@@ -39,7 +39,7 @@ a7af2d909c5d29c36888532f7533666076427b2178ad5b7509498ea89c71a61a  03_sources/raw
 c3d70632664d981cee23b3248ac38012e8b7830cc73bad0f1ffb31096f26302b  03_sources/raw/fkr25/provenance/fkr_geo2.jsonl
 a20213bd4467ec0be35637f3581b3f00565bf173010b9590a53b89b61d19bd1c  02_data/osm_coastline_raw.json
 976e4c4dfe2e85beb60ba00b40b342134e14103ad0b6c158537e14da3b499cc5  02_data/osm_buildings_vl.json
-6d58b188e67dbcfa589c42150dca81f95cbdae9ff8635c0915679e8b31369186  02_data/osm_places.json
+be60d7b9361555167baee673d3d285c6beed648ec11a12fc9b2af3ff308d6739  02_data/osm_places.json
 ```
 
 ## Чего в манифесте нет (честно)
@@ -54,4 +54,4 @@ sha256 этого файла (посчитан по содержимому БЕ�
 
 - `02_data/osm_coastline_raw.json` — сырой ответ Overpass (natural=coastline, bbox 42.60–43.60/131.30–132.60, 14.11.2026), sha256 `a20213bd4467ec0b…`; добавлен V15 (вода/берег).
 - `02_data/osm_buildings_vl.json` — здания OSM в границах Владивостокского ГО (73 100 контуров), вырезаны из Geofabrik far-eastern-fed-district-latest.osm.pbf (13.11.2026, md5 14da239f…) скриптом 05_code/osm_buildings_extract.py, 15.11.2026, sha256 `976e4c4dfe2e85be…`; добавлен T-014 (контуры домов).
-- `02_data/osm_places.json` — выборка Overpass (бухты — 4×4 квадрата bbox 42.95–43.35/131.75–132.15, реки и острова — запросы по названиям; снимок базы 20.11.2026) скриптом 05_code/osm_places_fetch.py, 21.11.2026, sha256 `6d58b188e67dbcfa…`; добавлен T-025 (слой «бухты, реки, мысы»).
+- `02_data/osm_places.json` — выборка Overpass (бухты — 4×4 квадрата bbox 42.95–43.35/131.75–132.15, реки и острова — запросы по названиям; снимок базы 20.11.2026) скриптом 05_code/osm_places_fetch.py, 21.11.2026, sha256 `be60d7b936155516…`; добавлен T-025 (слой «бухты, реки, мысы»).
