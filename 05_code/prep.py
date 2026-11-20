@@ -55,6 +55,15 @@ def src_codes(name,year_source,note=''):
     for u in RESEARCH.get(name,[]):
         if u not in BROKEN:add('u:'+u)
     return codes
+# T-023: справки об улицах из статей (06_research/articles.json) -> поле a=[[индекс статьи, текст],…], список статей arts=[[url, подпись, заголовок],…]
+_AJ=json.load(open(os.path.join(HERE,'..','06_research','articles.json'),encoding='utf-8'))
+ARTS=[[a['url'],a['label'],a['title']] for a in _AJ['articles']]
+_AI={a['id']:k for k,a in enumerate(_AJ['articles'])}
+ART_NOTES={}
+for x in _AJ['notes']:ART_NOTES.setdefault(x['street'],[]).append([_AI[x['article']],x['text']])
+_names={f['properties']['name'] for f in fs}
+_miss=[n for n in ART_NOTES if n not in _names]
+assert not _miss,'articles.json: нет таких улиц в geojson: '+', '.join(_miss)
 SRCS=[];SRC_I={}
 def src_ids(codes):
     ids=[]
@@ -95,7 +104,7 @@ for f in fs:
     note=p.get('note','') or ''
     sc=src_ids(src_codes(p['name'],ys,note))
     note=re.sub(r'\s*Источник[и]?:\s*https?://.*$','',note,flags=re.S)
-    out.append(dict(n=p['name'],g=p['group'],c=p['theme'],s=p['subtheme'],u=1 if p['confidence']!='высокая' else 0,o=note,y=y,yd=ys if not ys.startswith('http') and 'http' not in ys else '',pt=p.get('part'),d=d,**({'src':sc} if sc else {})))
+    out.append(dict(n=p['name'],g=p['group'],c=p['theme'],s=p['subtheme'],u=1 if p['confidence']!='высокая' else 0,o=note,y=y,yd=ys if not ys.startswith('http') and 'http' not in ys else '',pt=p.get('part'),d=d,**({'src':sc} if sc else {}),**({'a':ART_NOTES[p['name']]} if p['name'] in ART_NOTES else {})))
 print('features',len(out))
 # V4: дома ФКР -> сегмент 'houses' (готовит houses_prep.py; если файла нет — дома не вливаются)
 H_IN=os.path.join(HERE,'houses.json')
@@ -177,6 +186,7 @@ keys=[name_key(o['n']) for o in out]
 names_total=len(out); names_unique=len(set(keys)); names_multi=sum(1 for k,c in collections.Counter(keys).items() if c>1)
 print('names_total',names_total,'names_unique',names_unique,'names_multi',names_multi)
 print('sources: lines',sum(1 for o in out if o.get('src')),'unique links',len(SRCS))
-json.dump(dict(f=out,capes=cp,srcs=SRCS,names_total=names_total,names_unique=names_unique,houses=houses_seg,water=water_seg),open(OUT,'w',encoding='utf-8'),ensure_ascii=False,separators=(',',':'))
+print('article notes: lines',sum(1 for o in out if o.get('a')),'articles',len(ARTS))
+json.dump(dict(f=out,capes=cp,srcs=SRCS,arts=ARTS,names_total=names_total,names_unique=names_unique,houses=houses_seg,water=water_seg),open(OUT,'w',encoding='utf-8'),ensure_ascii=False,separators=(',',':'))
 print(os.path.getsize(OUT))
 print(collections.Counter(o['g'] for o in out)); print(sum(1 for o in out if o['y'] is None))

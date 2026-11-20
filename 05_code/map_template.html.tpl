@@ -541,6 +541,9 @@ function srcLink(k){
   else {u=v;let h='';try{h=new URL(v).hostname.replace(/^www\./,'');}catch(_){} l=HOSTS[h]||h||v;}
   return `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(l)}</a>`;
 }
+// T-023: справки из статей — абзац со ссылкой на статью (DATA.arts: [url, подпись, заголовок])
+const ARTS=DATA.arts||[];
+function artLines(f){return (f.a||[]).map(([k,t])=>{const a=ARTS[k];return `<p class="meta art">${esc(t)} <span class="srcs">— <a href="${esc(a[0])}" target="_blank" rel="noopener" title="${esc(a[2])}">${esc(a[1])}</a></span></p>`;}).join('');}
 function srcLine(f){return f.src&&f.src.length?`<p class="meta srcs">${f.src.length>1?'Источники':'Источник'}: ${f.src.map(srcLink).join(', ')}</p>`:'';}
 // список чипов: первые lim видны, остальные раскрывает кнопка «и ещё N»
 function chipList(items,lim){
@@ -570,6 +573,7 @@ function renderDetails(i,rel){
       hSum='<p class="meta">Дома ФКР на этой улице: <b>'+hs.length+'</b>'+(ys.length?', постройка <b>'+Math.min(...ys)+'–'+Math.max(...ys)+'</b>':'')+(top?', материалы: '+top:'')+'.</p>';}}
   details.innerHTML=`
     ${f.o?`<p class="meta">${esc(f.o)}</p>`:''}
+    ${artLines(f)}
     ${twins(f)}
     <p class="meta">Название присвоено: ${yr}</p>
     ${srcLine(f)}
