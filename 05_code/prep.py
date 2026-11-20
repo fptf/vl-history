@@ -181,9 +181,9 @@ for pl in PJ['places']:
     if pl['kind']=='cape':
         c=cape_xy.pop(pl['name']); PL.append(dict(t='cape',n=pl['name'],x=c[0],y=c[1],a=notes)); continue
     els=[OP[k.strip()] for k in pl['osm'].split(',')]
-    if pl['kind']=='bay':
+    if pl['kind'] in ('bay','island','strait'):
         e=els[0]; ll=e.get('center') or {'lat':e['lat'],'lon':e['lon']}
-        x,y=proj((ll['lon'],ll['lat'])); PL.append(dict(t='bay',n=pl['name'],x=round(x),y=round(y),a=notes)); continue
+        x,y=proj((ll['lon'],ll['lat'])); PL.append(dict(t=pl['kind'],n=pl['name'],x=round(x),y=round(y),a=notes)); continue
     d='';best=[]
     for e in els:
         pts=dp([proj((g['lon'],g['lat'])) for g in e['geometry']],0.6); pts=[(round(x),round(y)) for x,y in pts]
@@ -194,7 +194,7 @@ for pl in PJ['places']:
     mx,my=best[len(best)//2]
     PL.append(dict(t='river',n=pl['name'],x=mx,y=my,d=d,a=notes))
 cp=[c for c in cp if c[2] in cape_xy]
-print('places',len(PL),{k:sum(1 for p in PL if p['t']==k) for k in ('bay','river','cape')})
+print('places',len(PL),{k:sum(1 for p in PL if p['t']==k) for k in ('bay','strait','island','river','cape')})
 allx=[];ally=[]
 for o in out:
     for m in re.finditer(r'M(-?\d+) (-?\d+)',o['d']): allx.append(int(m.group(1)));ally.append(int(m.group(2)))
