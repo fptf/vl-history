@@ -168,6 +168,33 @@ if houses_seg:
 cp=[]
 for c in capes:
     x,y=proj(c['geometry']['coordinates']); cp.append([round(x),round(y),c['properties']['name']])
+# T-025: слой объектов (бухты, реки, мысы) со справками из статей — 06_research/places.json.
+# Бухты/реки: геометрия OSM из 02_data/osm_places.json (id в поле osm; у реки — несколько way через запятую);
+# мысы: точки из vvmap_capes, со справкой — переносятся из capes в places (чтобы не было двойной подписи).
+# Элемент: dict(t=bay|river|cape, n=имя, x,y = точка подписи, d = путь реки (как у улиц), a=[[статья,текст],…])
+PJ=json.load(open(os.path.join(HERE,'..','06_research','places.json'),encoding='utf-8'))
+OP={e['type']+'/'+str(e['id']):e for e in json.load(open(os.path.join(DATA_DIR,'osm_places.json'),encoding='utf-8'))['elements']}
+PL=[]; cape_xy={c[2]:c for c in cp}
+for pl in PJ['places']:
+    notes=[[_AI[x['article']],x['text']] for x in PJ['notes'] if x['place']==pl['name']]
+    assert notes,'places.json: нет справок у '+pl['name']
+    if pl['kind']=='cape':
+        c=cape_xy.pop(pl['name']); PL.append(dict(t='cape',n=pl['name'],x=c[0],y=c[1],a=notes)); continue
+    els=[OP[k.strip()] for k in pl['osm'].split(',')]
+    if pl['kind']=='bay':
+        e=els[0]; ll=e.get('center') or {'lat':e['lat'],'lon':e['lon']}
+        x,y=proj((ll['lon'],ll['lat'])); PL.append(dict(t='bay',n=pl['name'],x=round(x),y=round(y),a=notes)); continue
+    d='';best=[]
+    for e in els:
+        pts=dp([proj((g['lon'],g['lat'])) for g in e['geometry']],0.6); pts=[(round(x),round(y)) for x,y in pts]
+        dd=[pts[0]]+[q for i,q in enumerate(pts[1:]) if q!=pts[i]]
+        if len(dd)<2: continue
+        d+='M%d %d'%dd[0]+''.join('l%d %d'%(dd[i][0]-dd[i-1][0],dd[i][1]-dd[i-1][1]) for i in range(1,len(dd)))
+        if len(dd)>len(best): best=dd
+    mx,my=best[len(best)//2]
+    PL.append(dict(t='river',n=pl['name'],x=mx,y=my,d=d,a=notes))
+cp=[c for c in cp if c[2] in cape_xy]
+print('places',len(PL),{k:sum(1 for p in PL if p['t']==k) for k in ('bay','river','cape')})
 allx=[];ally=[]
 for o in out:
     for m in re.finditer(r'M(-?\d+) (-?\d+)',o['d']): allx.append(int(m.group(1)));ally.append(int(m.group(2)))
@@ -187,6 +214,6 @@ names_total=len(out); names_unique=len(set(keys)); names_multi=sum(1 for k,c in 
 print('names_total',names_total,'names_unique',names_unique,'names_multi',names_multi)
 print('sources: lines',sum(1 for o in out if o.get('src')),'unique links',len(SRCS))
 print('article notes: lines',sum(1 for o in out if o.get('a')),'articles',len(ARTS))
-json.dump(dict(f=out,capes=cp,srcs=SRCS,arts=ARTS,names_total=names_total,names_unique=names_unique,houses=houses_seg,water=water_seg),open(OUT,'w',encoding='utf-8'),ensure_ascii=False,separators=(',',':'))
+json.dump(dict(f=out,capes=cp,places=PL,srcs=SRCS,arts=ARTS,names_total=names_total,names_unique=names_unique,houses=houses_seg,water=water_seg),open(OUT,'w',encoding='utf-8'),ensure_ascii=False,separators=(',',':'))
 print(os.path.getsize(OUT))
 print(collections.Counter(o['g'] for o in out)); print(sum(1 for o in out if o['y'] is None))
