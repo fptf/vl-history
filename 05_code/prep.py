@@ -23,7 +23,9 @@ def clean_url(u):
     while u.endswith(')') and u.count(')')>u.count('('):u=u[:-1].rstrip('.,;')
     return u
 VV_DOCS={l.strip()[:-3] for l in open(os.path.join(DATA_DIR,'vvmap_documents.txt'),encoding='utf-8') if l.strip().endswith('.md')}
-VV_SRC={r['street']:(r['source'] or '').strip() for r in csv.DictReader(open(os.path.join(DATA_DIR,'vvmap_streets_years.csv'),encoding='utf-8'),delimiter=';')}
+# ключ без учёта регистра и ё/е: у vvmap «улица Героя России Жоги», «улица Военное Шоссе», у нас — со строчной
+_vk=lambda n:n.lower().replace('ё','е')
+VV_SRC={_vk(r['street']):(r['source'] or '').strip() for r in csv.DictReader(open(os.path.join(DATA_DIR,'vvmap_streets_years.csv'),encoding='utf-8'),delimiter=';')}
 RESEARCH={}
 for fn in ('findings.jsonl','findings2.jsonl'):  # волна 2 дополняет волну 1
     for l in open(os.path.join(HERE,'..','06_research',fn),encoding='utf-8'):
@@ -38,7 +40,7 @@ def src_codes(name,year_source,note=''):
     codes=[]
     def add(c):
         if c not in codes:codes.append(c)
-    for t in (VV_SRC.get(name,''),year_source):
+    for t in (VV_SRC.get(_vk(name),''),year_source):
         m=re.fullmatch(r'(\d{8}-\d+)\.md',t)
         if m and m.group(1) in VV_DOCS:add('d:'+m.group(1))
         for dd,mm,yy,no in re.findall(r'от (\d{2})\.(\d{2})\.(\d{4})\s*(?:г\.)?\s*[№N]\s*(\d+)',t):
@@ -75,6 +77,37 @@ def src_ids(codes):
 lat0=43.11; kx=math.cos(math.radians(lat0))*111320; ky=110574
 lon0,latT=131.70,43.32
 def proj(c): return ((c[0]-lon0)*kx/10.0,(latT-c[1])*ky/10.0)  # units = 10 m
+def deep_point(ring):
+    # точка внутри кольца, наиболее удалённая от его границы (перебор по сетке 40×40, затем уточнение) — место подписи
+    xs=[p[0] for p in ring]; ys=[p[1] for p in ring]
+    def inside(x,y):
+        c=False
+        for (x1,y1),(x2,y2) in zip(ring,ring[1:]):
+            if (y1>y)!=(y2>y) and x<(x2-x1)*(y-y1)/(y2-y1)+x1: c=not c
+        return c
+    def dist(x,y):
+        m=1e18
+        for (x1,y1),(x2,y2) in zip(ring,ring[1:]):
+            dx,dy=x2-x1,y2-y1; L=dx*dx+dy*dy; t=0 if L==0 else max(0,min(1,((x-x1)*dx+(y-y1)*dy)/L))
+            m=min(m,(x-x1-t*dx)**2+(y-y1-t*dy)**2)
+        return m
+    x0,x1,y0,y1=min(xs),max(xs),min(ys),max(ys); best=(-1,(sum(xs)/len(xs),sum(ys)/len(ys))); n=40
+    for i in range(n+1):
+        for j in range(n+1):
+            x=x0+(x1-x0)*i/n; y=y0+(y1-y0)*j/n
+            if inside(x,y):
+                d=dist(x,y)
+                if d>best[0]: best=(d,(x,y))
+    (bx,by)=best[1]; sx,sy=(x1-x0)/n,(y1-y0)/n
+    for _ in range(3):
+        for i in range(-4,5):
+            for j in range(-4,5):
+                x=bx+sx*i/4; y=by+sy*j/4
+                if inside(x,y):
+                    d=dist(x,y)
+                    if d>best[0]: best=(d,(x,y))
+        (bx,by)=best[1]; sx/=4; sy/=4
+    return round(bx),round(by)
 def dp(pts,eps):
     if len(pts)<3: return pts
     a,b=pts[0],pts[-1]; dx,dy=b[0]-a[0],b[1]-a[1]; L=math.hypot(dx,dy) or 1e-9
@@ -168,6 +201,73 @@ if houses_seg:
 cp=[]
 for c in capes:
     x,y=proj(c['geometry']['coordinates']); cp.append([round(x),round(y),c['properties']['name']])
+# T-025: слой объектов (бухты, реки, мысы) со справками из статей — 06_research/places.json.
+# Бухты/реки: геометрия OSM из 02_data/osm_places.json (id в поле osm; у реки — несколько way через запятую);
+# мысы: точки из vvmap_capes, со справкой — переносятся из capes в places (чтобы не было двойной подписи).
+# Элемент: dict(t=bay|river|cape, n=имя, x,y = точка подписи, d = путь реки (как у улиц), a=[[статья,текст],…])
+PJ=json.load(open(os.path.join(HERE,'..','06_research','places.json'),encoding='utf-8'))
+OP={e['type']+'/'+str(e['id']):e for e in json.load(open(os.path.join(DATA_DIR,'osm_places.json'),encoding='utf-8'))['elements']}
+PL=[]; cape_xy={c[2]:c for c in cp}
+for pl in PJ['places']:
+    notes=[[_AI[x['article']],x['text']] for x in PJ['notes'] if x['place']==pl['name']]
+    assert notes,'places.json: нет справок у '+pl['name']
+    if pl['kind']=='cape':
+        c=cape_xy.pop(pl['name']); PL.append(dict(t='cape',n=pl['name'],x=c[0],y=c[1],a=notes)); continue
+    if 'll' in pl:  # нет в OSM: точка из проверенного источника (поле src — в карточку)
+        x,y=proj((pl['ll'][1],pl['ll'][0])); PL.append(dict(t=pl['kind'],n=pl['name'],x=round(x),y=round(y),a=notes,s=pl['src'])); continue
+    els=[OP[k.strip()] for k in pl['osm'].split(',')]
+    if pl['kind'] in ('bay','island','strait'):
+        e=els[0]; ll=e.get('center') or {'lat':e['lat'],'lon':e['lon']}
+        x,y=proj((ll['lon'],ll['lat'])); q=dict(t=pl['kind'],n=pl['name'],x=round(x),y=round(y),a=notes)
+        if 'ring' in e:  # T-032: контур бухты из OSM -> разомкнутая линия берега so (без линии по входу), точка — в «глубине» бухты
+            br=max(([proj((g['lon'],g['lat'])) for g in r] for r in e['ring']),key=len)
+            q['x'],q['y']=deep_point(br)
+            # вход в бухту — самый длинный отрезок кольца (замыкающая линия по входу; у всех 7 бухт он в разы длиннее остальных):
+            # кольцо разрезаем по нему — линия идёт от одного мыса входа вокруг бухты к другому
+            m=max(range(len(br)-1),key=lambda k:math.dist(br[k],br[k+1]))
+            line=br[m+1:]+br[1:m+1]
+            pts=[(round(a),round(b)) for a,b in dp(line,0.6)]; pts=[pts[0]]+[t for k,t in enumerate(pts[1:]) if t!=pts[k]]
+            q['so']='M%d %d'%pts[0]+''.join('l%d %d'%(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1]) for k in range(1,len(pts)))
+        elif pl['kind']=='bay' and rings:
+            # T-037: контура в OSM нет — разомкнутый берег бухты по нашей береговой линии (кольца суши water.json).
+            # Из точки бухты пускаем 180 лучей; луч, упёршийся в берег ближе Rmax, даёт точку берега; лучи, ушедшие дальше, — вход.
+            # Берег бухты — самая длинная по углу непрерывная серия попаданий. Rmax — поле shore в places.json или 4·d0 (70…350).
+            segs=[(a,b) for r in rings if len(r)>=20 for a,b in zip(r,r[1:]+r[:1])]
+            d0=min(math.dist(v,(x,y)) for r in rings if len(r)>=20 for v in r); Rm=pl.get('shore') or min(350,max(70,4*d0))
+            near=[(a,b) for a,b in segs if min(a[0],b[0])-Rm<=x<=max(a[0],b[0])+Rm and min(a[1],b[1])-Rm<=y<=max(a[1],b[1])+Rm]
+            K=180; hits=[]
+            for k in range(K):
+                dx,dy=math.cos(2*math.pi*k/K),math.sin(2*math.pi*k/K); best=None
+                for (x1,y1),(x2,y2) in near:
+                    ex,ey=x2-x1,y2-y1; den=dx*ey-dy*ex
+                    if abs(den)<1e-9: continue
+                    t=((x1-x)*ey-(y1-y)*ex)/den; u=((x1-x)*dy-(y1-y)*dx)/den
+                    if t>0 and 0<=u<=1 and (best is None or t<best): best=t
+                hits.append((x+dx*best,y+dy*best) if best is not None and best<=Rm else None)
+            if any(h is None for h in hits):  # серии попаданий по кругу; начинаем с первого промаха
+                s0=hits.index(None); seq=hits[s0:]+hits[:s0]; runs=[]; cur=[]
+                for h in seq:
+                    if h is None:
+                        if cur: runs.append(cur); cur=[]
+                    else: cur.append(h)
+                if cur: runs.append(cur)
+                pts=max(runs,key=len) if runs else []
+            else: pts=hits+hits[:1]
+            pts=[(round(a),round(b)) for a,b in pts]; pts=[pts[0]]+[t for k,t in enumerate(pts[1:]) if t!=pts[k]] if pts else []
+            if len(pts)>=3: q['so']='M%d %d'%pts[0]+''.join('l%d %d'%(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1]) for k in range(1,len(pts)))
+            print('  берег',pl['name'],'d0',round(d0),'Rmax',round(Rm),'точек',len(pts),'лучей-промахов',sum(h is None for h in hits))
+        PL.append(q); continue
+    d='';best=[]
+    for e in els:
+        pts=dp([proj((g['lon'],g['lat'])) for g in e['geometry']],0.6); pts=[(round(x),round(y)) for x,y in pts]
+        dd=[pts[0]]+[q for i,q in enumerate(pts[1:]) if q!=pts[i]]
+        if len(dd)<2: continue
+        d+='M%d %d'%dd[0]+''.join('l%d %d'%(dd[i][0]-dd[i-1][0],dd[i][1]-dd[i-1][1]) for i in range(1,len(dd)))
+        if len(dd)>len(best): best=dd
+    mx,my=best[len(best)//2]
+    PL.append(dict(t='river',n=pl['name'],x=mx,y=my,d=d,a=notes))
+cp=[c for c in cp if c[2] in cape_xy]
+print('places',len(PL),{k:sum(1 for p in PL if p['t']==k) for k in ('bay','strait','island','peninsula','river','cape')})
 allx=[];ally=[]
 for o in out:
     for m in re.finditer(r'M(-?\d+) (-?\d+)',o['d']): allx.append(int(m.group(1)));ally.append(int(m.group(2)))
@@ -186,7 +286,30 @@ keys=[name_key(o['n']) for o in out]
 names_total=len(out); names_unique=len(set(keys)); names_multi=sum(1 for k,c in collections.Counter(keys).items() if c>1)
 print('names_total',names_total,'names_unique',names_unique,'names_multi',names_multi)
 print('sources: lines',sum(1 for o in out if o.get('src')),'unique links',len(SRCS))
+# фильтр «Источники» (T-035): у каждой линии — группы источников сведений о названии и годе (поле sg, индексы в SG).
+# Название улицы — из списка ginfo.ru, геометрия — OSM через vvmap; группы ниже — откуда год/справка.
+# «vvmap (первоисточник не указан)» — запись vvmap только с описанием или годом.
+SG=['Постановления','Справочник 1924 г.','Списки 1954 и 1957 гг.','Telegram t.me/vvtopo','Telegram t.me/ochkuryvl','Статьи VL.ru','Википедия','Wikimapia','Другие сайты','vvmap (первоисточник не указан)']
+for o in out:
+    g=set(); yd=o['yd'].lower()
+    for i in o.get('src',[]):
+        c=SRCS[i]
+        if c[0] in 'dp': g.add(0)
+        elif c.startswith('t:vvtopo/'): g.add(3)
+        elif c.startswith('t:ochkuryvl/'): g.add(4)
+        elif c.startswith('t:'): g.add(8)
+        elif 'wikipedia.org' in c or 'ruwiki.ru' in c: g.add(6)
+        elif 'wikimapia.org' in c: g.add(7)
+        elif 'newsvl.ru' in c: g.add(5)
+        else: g.add(8)
+    if '1924' in yd and 'справоч' in yd: g.add(1)
+    if 'спис' in yd and ('1954' in yd or '1957' in yd): g.add(2)
+    if o.get('a'): g.add(5)
+    if VV_SRC.get(_vk(o['n']),'').lower()=='wikimapia': g.add(7)
+    if not g: g.add(9)
+    o['sg']=sorted(g)
+print('source groups:',{SG[k]:sum(1 for o in out if k in o['sg']) for k in range(len(SG))})
 print('article notes: lines',sum(1 for o in out if o.get('a')),'articles',len(ARTS))
-json.dump(dict(f=out,capes=cp,srcs=SRCS,arts=ARTS,names_total=names_total,names_unique=names_unique,houses=houses_seg,water=water_seg),open(OUT,'w',encoding='utf-8'),ensure_ascii=False,separators=(',',':'))
+json.dump(dict(f=out,capes=cp,places=PL,srcs=SRCS,sg=SG,arts=ARTS,names_total=names_total,names_unique=names_unique,houses=houses_seg,water=water_seg),open(OUT,'w',encoding='utf-8'),ensure_ascii=False,separators=(',',':'))
 print(os.path.getsize(OUT))
 print(collections.Counter(o['g'] for o in out)); print(sum(1 for o in out if o['y'] is None))
