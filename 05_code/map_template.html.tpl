@@ -91,11 +91,16 @@ svg#map{position:relative;width:100%;height:100%;display:block} /* над хол
 .off-streets #streets,.off-streets #top,.off-streets #hit{display:none}
 .off-bay #places .pl-bay{display:none}
 .off-river #rivers,.off-river #places .pl-river{display:none}
-.lchk{display:flex;flex-wrap:wrap;gap:4px 16px}
-.lchk button{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:2px 0;font:inherit;font-size:14px;color:var(--ink);cursor:pointer}
-.lchk button::before{content:"";width:14px;height:14px;border-radius:3px;border:1.5px solid var(--ink-2);box-sizing:border-box;flex:none}
-.lchk button[aria-checked="true"]::before{border-color:var(--ink);background:var(--ink);box-shadow:inset 0 0 0 2.5px var(--paper)}
-.lchk button:hover::before{border-color:var(--ink)}
+.layers-ui{display:flex;flex-direction:column;gap:10px}
+.layers-ui h2{margin-bottom:0}
+.lchk{display:inline-flex;align-items:center;gap:8px;border:0;background:none;padding:2px 0;font:inherit;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;text-align:left}
+.lchk::before{content:"";width:15px;height:15px;border-radius:3px;border:1.5px solid var(--ink-2);box-sizing:border-box;flex:none}
+.lchk[aria-checked="true"]::before{border-color:var(--ink);background:var(--ink);box-shadow:inset 0 0 0 2.5px var(--paper)}
+.lchk:hover::before{border-color:var(--ink)}
+.lchk:disabled{cursor:default;color:var(--ink-2)}
+.lchk .hcount{font-weight:400}
+.lset{margin:6px 0 0 23px}
+.lsub{margin:0 0 4px;font-size:13px;color:var(--ink-2)}
 .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);font-size:13px;font-weight:600;padding:4px 8px;border-radius:4px;white-space:nowrap;transform:translate(12px,-130%);display:none;z-index:3}
 .zoom{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:6px;z-index:2}
 .zoom button{width:36px;height:36px;border:1px solid var(--line);background:var(--panel);border-radius:6px;font-size:18px;line-height:1;cursor:pointer}
@@ -105,10 +110,10 @@ svg#map{position:relative;width:100%;height:100%;display:block} /* над хол
 .houses-ui .hrow{display:flex;align-items:center;gap:8px;font-size:14px}
 .houses-ui input{width:16px;height:16px;accent-color:var(--ink)}
 .houses-ui .hcount{color:var(--ink-2);font-size:13px}
-#hlegend{margin-top:8px;font-size:13px;color:var(--ink-2)}
+#hlegend{font-size:13px;color:var(--ink-2)}
 #hlegend .hgrad{height:10px;border-radius:3px;border:1px solid var(--line)}
 #hlegend .htags{display:flex;justify-content:space-between;margin-top:2px;font-variant-numeric:tabular-nums}
-.houses-ui .hcolor{margin-top:10px;font-size:13px;flex-wrap:wrap;row-gap:3px}
+.houses-ui .hcolor{margin-top:0;font-size:13px;flex-wrap:wrap;row-gap:3px}
 .houses-ui .hcolor>span{color:var(--ink-2)}
 .houses-ui .hcolor{align-items:center}
 /* свои радио-кружки (не <input type=radio>: Firefox восстанавливал их состояние после перезагрузки) */
@@ -291,28 +296,34 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
     </div>
 
     <div class="overview" id="overview">
-      <section>
-        <h2>Группы названий</h2>
-        <ul class="legend" id="legend"></ul>
-      </section>
-      <section class="layers-ui">
+      <section class="layers-ui" aria-label="Слои карты">
         <h2>Слои</h2>
-        <div class="lchk" id="layers" role="group" aria-label="Слои карты"><button type="button" role="checkbox" aria-checked="true" data-l="streets">Улицы</button><button type="button" role="checkbox" aria-checked="true" data-l="bay">Бухты</button><button type="button" role="checkbox" aria-checked="true" data-l="river">Реки</button></div>
-      </section>
-      <section class="houses-ui">
-        <h2>Дома (год постройки) <span class="hcount" id="hcount"></span></h2>
-        <div id="hlegend">
-          <div class="hrow hcolor" aria-label="Показ домов на карте">
-            <span>Показать:</span>
-            <span class="hradio" id="hmode" role="radiogroup"><button type="button" role="radio" data-v="off" aria-pressed="false" aria-checked="false">нет</button><button type="button" role="radio" data-v="street" aria-pressed="true" aria-checked="true">по улице</button><button type="button" role="radio" data-v="year" aria-pressed="false" aria-checked="false">по году</button></span>
+        <div class="layer">
+          <button type="button" class="lchk" role="checkbox" aria-checked="true" data-l="streets" aria-controls="set-streets">Улицы</button>
+          <div class="lset" id="set-streets">
+            <p class="lsub">Группы названий</p>
+            <ul class="legend" id="legend"></ul>
           </div>
-          <div id="hleg-year" hidden>
-            <div class="hgrad" id="hgrad"></div>
-            <div class="htags"><span id="hy0"></span><span id="hy1"></span></div>
-          </div>
-          <div id="hleg-street" hidden></div>
-          <p class="meta hnote" id="hnote" hidden>При приближении дома показываются контурами зданий, остальные здания города — серой подложкой (© OpenStreetMap).</p>
         </div>
+        <div class="layer houses-ui">
+          <button type="button" class="lchk" role="checkbox" aria-checked="false" data-l="houses" aria-controls="set-houses">Дома (год постройки) <span class="hcount" id="hcount"></span></button>
+          <div class="lset" id="set-houses" hidden>
+            <div id="hlegend">
+              <div class="hrow hcolor" aria-label="Раскраска домов">
+                <span>Цвет:</span>
+                <span class="hradio" id="hmode" role="radiogroup"><button type="button" role="radio" data-v="street" aria-pressed="true" aria-checked="true">по улице</button><button type="button" role="radio" data-v="year" aria-pressed="false" aria-checked="false">по году</button></span>
+              </div>
+              <div id="hleg-year" hidden>
+                <div class="hgrad" id="hgrad"></div>
+                <div class="htags"><span id="hy0"></span><span id="hy1"></span></div>
+              </div>
+              <div id="hleg-street" hidden></div>
+              <p class="meta hnote" id="hnote" hidden>При приближении дома показываются контурами зданий, остальные здания города — серой подложкой (© OpenStreetMap).</p>
+            </div>
+          </div>
+        </div>
+        <div class="layer"><button type="button" class="lchk" role="checkbox" aria-checked="true" data-l="bay">Бухты</button></div>
+        <div class="layer"><button type="button" class="lchk" role="checkbox" aria-checked="true" data-l="river">Реки</button></div>
       </section>
       <footer class="src"><details><summary>Источники и пояснения</summary>
         <p>Геометрия улиц — © участники OpenStreetMap (ODbL), выгрузка и годы названий — открытый проект <a href="https://github.com/skirienko/vvmap" target="_blank" rel="noopener">vvmap</a>.</p>
@@ -396,12 +407,16 @@ const placeEls=PLACES.map((p,k)=>{
   const t=document.createElementNS(NS,'text');t.textContent=p.n;g.appendChild(t);gPlaces.appendChild(g);return g;});
 
 // ---------- слои «Улицы / Бухты / Реки» (T-031): класс off-<слой> на svg; открытие объекта выключенного слоя включает слой
-const layersEl=document.getElementById('layers'), layerOn={streets:true,bay:true,river:true};
-function setLayer(l,on){if(!(l in layerOn)||layerOn[l]===on)return;layerOn[l]=on;svg.classList.toggle('off-'+l,!on);
-  layersEl.querySelector(`[data-l="${l}"]`).setAttribute('aria-checked',String(on));
+// у слоя есть настройки (#set-<слой>) — они видны только при включённом слое; дома включаются в своём блоке (setHouses)
+const layersEl=document.querySelector('.layers-ui'), layerOn={streets:true,houses:false,bay:true,river:true};
+function syncLayerUI(l){const b=layersEl.querySelector(`.lchk[data-l="${l}"]`),set=document.getElementById('set-'+l);
+  b.setAttribute('aria-checked',String(layerOn[l])); if(set)set.hidden=!layerOn[l];}
+function setLayer(l,on){if(!(l in layerOn)||layerOn[l]===on)return;
+  if(l==='houses'){setHouses(on);return;}
+  layerOn[l]=on;svg.classList.toggle('off-'+l,!on);syncLayerUI(l);
   if(!on){ if(l==='streets'&&(pinned!=null||legendPinned!=null||decPinned!=null)){hovered=null;clearPin();}
     if(placeOpen!=null&&PLACES[placeOpen].t===l){placeOpen=null;syncPressed();restore();} }}
-layersEl.addEventListener('click',e=>{const b=e.target.closest('[data-l]');if(b)setLayer(b.dataset.l,!layerOn[b.dataset.l]);});
+layersEl.addEventListener('click',e=>{const b=e.target.closest('.lchk');if(b&&!b.disabled)setLayer(b.dataset.l,!layerOn[b.dataset.l]);});
 
 // ---------- view (zoom/pan)
 const FULL={x:60,y:40,w:4200,h:4440};
@@ -824,18 +839,19 @@ if(HD){
   { const n=HD.decades.length;
     hGrad.style.background='linear-gradient(90deg,'+decColor(0)+','+decColor(Math.floor(n/2))+','+decColor(n-1)+')';
     hy0.textContent=HD.decades[0]+'-е'; hy1.textContent=HD.decades[n-1]+'-е'; }
-  // «нет» — слой выключен; «по году» / «по улице» — слой включён с этой раскраской
+  // раскраска домов: «по улице» / «по году» (включение слоя — флажок «Дома» в блоке «Слои»)
   hModeSeg.addEventListener('click',e=>{
-    const b=e.target.closest('[data-v]'); if(!b)return; const v=b.dataset.v;
+    const b=e.target.closest('[data-v]'); if(!b)return; hColorMode=b.dataset.v;
     hModeSeg.querySelectorAll('[data-v]').forEach(x=>{x.setAttribute('aria-pressed',String(x===b));x.setAttribute('aria-checked',String(x===b));});
-    const wasOn=housesOn; housesOn=v!=='off'; if(housesOn)hColorMode=v;
-    syncHLegend();
-    if(housesOn){loadBuildings();drawHouses(); if(!wasOn&&pinned!=null)showStreet(pinned);}
-    else{hideTip();hoverHouse=-1;wrap.classList.remove('onhouse');houseOpen=null;restore();drawHouses();} // перерисовать сразу: точки убрать, контуры — в серый
+    syncHLegend(); drawHouses();
   });
   // смена системной темы — перекрасить уже нарисованные дома
   if(window.matchMedia)matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{if(housesOn)drawHouses();});
-} else { hModeSeg.querySelectorAll('button').forEach(b=>b.disabled=true); hCount.textContent='нет данных'; }
+} else { layersEl.querySelector('.lchk[data-l="houses"]').disabled=true; hCount.textContent='нет данных'; }
+function setHouses(on){ if(!HD||housesOn===on)return; const wasOn=housesOn; housesOn=on; layerOn.houses=on; syncLayerUI('houses'); syncHLegend();
+  if(housesOn){loadBuildings();drawHouses(); if(!wasOn&&pinned!=null)showStreet(pinned);}
+  else{hideTip();hoverHouse=-1;wrap.classList.remove('onhouse');houseOpen=null;restore();drawHouses();} } // перерисовать сразу: точки убрать, контуры — в серый
+layerOn.houses=housesOn; syncLayerUI('houses');
 
 // ---------- legend
 const legend=document.getElementById('legend'); let legendPinned=null;
