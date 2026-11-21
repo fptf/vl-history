@@ -94,7 +94,11 @@ svg#map{position:relative;width:100%;height:100%;display:block} /* над хол
 .capes-off #places text{display:none}
 /* T-031: слои «Улицы / Бухты / Реки» — выключенный слой скрыт целиком */
 .off-streets #streets,.off-streets #top,.off-streets #hit{display:none}
-.off-water #rivers,.off-water #places .pl-bay,.off-water #places .pl-river{display:none}
+.off-water #rivers,.off-water #bays,.off-water #places .pl-bay,.off-water #places .pl-river{display:none}
+/* берег бухты (T-032, T-037): разомкнутая линия — контур OSM без линии по входу или наша береговая линия; без заливки, с полосой захвата; под улицами */
+#bays path.bo{fill:none;stroke:var(--water-ink);stroke-opacity:.7;stroke-width:2;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+#bays path.bo.hov,#bays path.bo.sel{stroke-opacity:1;stroke-width:3.5}
+#bays path.bh{fill:none;stroke:transparent;stroke-width:14;vector-effect:non-scaling-stroke;pointer-events:stroke;cursor:pointer}
 /* выпадающий список слоёв на ширину колонки; под ним — настройки включённых слоёв */
 .layers-ui{display:flex;flex-direction:column;gap:16px}
 .ldrop{position:relative}
@@ -275,7 +279,7 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
   <div class="mapwrap" id="wrap">
     <canvas id="bldunder" aria-hidden="true"></canvas>
     <svg id="map" role="img" aria-label="Карта улиц Владивостока, раскрашенная по тематикам названий">
-      <g id="water" aria-hidden="true"></g><g id="rivers" aria-hidden="true"></g><g id="capes"></g><g id="streets"></g><g id="top"></g><g id="hit"></g><g id="places"></g>
+      <g id="water" aria-hidden="true"></g><g id="bays" aria-hidden="true"></g><g id="rivers" aria-hidden="true"></g><g id="capes"></g><g id="streets"></g><g id="top"></g><g id="hit"></g><g id="places"></g>
     </svg>
     <canvas id="houses" aria-hidden="true"></canvas>
     <div class="zoom">
@@ -421,10 +425,11 @@ DATA.capes.forEach(([x,y,n])=>{
 
 // ---------- T-025: бухты, реки, мысы со справками из статей (DATA.places)
 const PLACES=DATA.places||[], PKIND={bay:'бухта',river:'река',cape:'мыс',island:'остров',strait:'пролив',peninsula:'полуостров'};
-const gRivers=document.getElementById('rivers'), gPlaces=document.getElementById('places');
+const gRivers=document.getElementById('rivers'), gBays=document.getElementById('bays'), gPlaces=document.getElementById('places');
 const placeEls=PLACES.map((p,k)=>{
   if(p.d)['rv','rh'].forEach(c=>{const rp=document.createElementNS(NS,'path');rp.setAttribute('d',p.d);rp.setAttribute('class',c);rp.dataset.k=k;gRivers.appendChild(rp);});
   const g=document.createElementNS(NS,'g');g.setAttribute('class','place pl-'+p.t);g.dataset.p=k;
+  if(p.so)['bo','bh'].forEach(c=>{const bp=document.createElementNS(NS,'path');bp.setAttribute('d',p.so);bp.setAttribute('class',c);bp.dataset.k=k;gBays.appendChild(bp);});
   if(p.t==='cape'||p.t==='bay'){const c=document.createElementNS(NS,'circle');c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);g.appendChild(c);}
   const t=document.createElementNS(NS,'text');t.textContent=p.n;g.appendChild(t);gPlaces.appendChild(g);return g;});
 
@@ -525,7 +530,7 @@ function endPtr(e){
       const t=document.elementFromPoint(e.clientX,e.clientY);
       const pe=t&&t.closest?t.closest('#places .place'):null;
       if(pe){openPlace(+pe.dataset.p,false);}
-      else if(t&&t.classList&&t.classList.contains('rh')){openPlace(+t.dataset.k,false);}
+      else if(t&&t.classList&&(t.classList.contains('rh')||t.classList.contains('bh'))){openPlace(+t.dataset.k,false);}
       else if(t&&t.parentNode===gHit){select(+t.dataset.i,false);} else if(!e.target.closest('.zoom')){clearPin();if(mq.matches)setSheet('min');}
     }
   }
@@ -589,7 +594,7 @@ document.getElementById('q').addEventListener('focus',()=>{if(mq.matches&&app.da
 // колонка: обзор (группы, дома) или карточка закреплённой улицы / дома
 const streetview=document.getElementById('streetview');
 let hovered=null;          // улица под курсором (подсвечена на карте, панель не открывает)
-function syncView(){placeEls.forEach((g,k)=>g.classList.toggle('sel',k===placeOpen));gRivers.querySelectorAll('.rv').forEach(rp=>rp.classList.toggle('sel',+rp.dataset.k===placeOpen));const on=pinned!=null||houseOpen!=null||placeOpen!=null||legendPinned!=null||decPinned!=null, was=streetview.classList.contains('open');
+function syncView(){placeEls.forEach((g,k)=>g.classList.toggle('sel',k===placeOpen));gRivers.querySelectorAll('.rv').forEach(rp=>rp.classList.toggle('sel',+rp.dataset.k===placeOpen));gBays.querySelectorAll('.bo').forEach(bp=>bp.classList.toggle('sel',+bp.dataset.k===placeOpen));const on=pinned!=null||houseOpen!=null||placeOpen!=null||legendPinned!=null||decPinned!=null, was=streetview.classList.contains('open');
   streetview.classList.toggle('open',on);
   if(mq.matches){if(on&&!was)setSheet('half');else if(!on&&was)setSheet('min');} if(housesOn&&drawnSel!==houseOpen)drawHouses();}
 function openPlace(k,zoom){if(LAYER_OF[PLACES[k].t])setLayer(LAYER_OF[PLACES[k].t],true);pinned=null;legendPinned=null;decPinned=null;hovered=null;syncPressed();placeOpen=k;clearHL();markDecade(null);showPlace(k);syncView();
@@ -614,13 +619,16 @@ function frameNote(ids){let k=0;ids.forEach(i=>{const b=paths[i].getBBox();if(b.
 const somethingPinned=()=>pinned!=null||houseOpen!=null||placeOpen!=null||legendPinned!=null||decPinned!=null;
 // наведение на объект (подпись, точка, линия реки): подсветка на карте + подсказка; если ничего не закреплено — его карточка, как у улиц
 let hovPlace=null;
-function markPlace(k,cls){placeEls.forEach((g,j)=>g.classList.toggle(cls,j===k));gRivers.querySelectorAll('.rv').forEach(rp=>rp.classList.toggle(cls,+rp.dataset.k===k));}
+function markPlace(k,cls){placeEls.forEach((g,j)=>g.classList.toggle(cls,j===k));gRivers.querySelectorAll('.rv').forEach(rp=>rp.classList.toggle(cls,+rp.dataset.k===k));gBays.querySelectorAll('.bo').forEach(bp=>bp.classList.toggle(cls,+bp.dataset.k===k));}
 function placeOver(k,e){if(e.pointerType==='touch'||(moved&&dragStart))return;if(houseAt(e.clientX,e.clientY)>=0)return;
   hovPlace=k;markPlace(k,'hov');showTip(e,PLACES[k].n);if(!somethingPinned())showPlace(k);}
 function placeOut(e){if(e.pointerType==='touch'||hovPlace==null)return;hovPlace=null;markPlace(null,'hov');hideTip();if(!somethingPinned())restore();}
 gPlaces.addEventListener('pointerover',e=>{const g=e.target.closest('.place');if(g)placeOver(+g.dataset.p,e);});
 gPlaces.addEventListener('pointerout',e=>{if(!e.relatedTarget||!e.target.closest('.place').contains(e.relatedTarget))placeOut(e);});
 gRivers.addEventListener('pointerover',e=>{if(e.target.classList.contains('rh'))placeOver(+e.target.dataset.k,e);});
+gBays.addEventListener('pointerover',e=>{if(e.target.classList.contains('bh'))placeOver(+e.target.dataset.k,e);});
+gBays.addEventListener('pointermove',e=>{if(hovPlace!=null&&e.pointerType!=='touch')showTip(e,PLACES[hovPlace].n);});
+gBays.addEventListener('pointerout',e=>{if(e.target.classList.contains('bh'))placeOut(e);});
 gRivers.addEventListener('pointermove',e=>{if(hovPlace!=null&&e.pointerType!=='touch')showTip(e,PLACES[hovPlace].n);});
 gRivers.addEventListener('pointerout',e=>{if(e.target.classList.contains('rh'))placeOut(e);});
 gHit.addEventListener('pointerover',e=>{if(moved&&dragStart)return;const i=+e.target.dataset.i;if(e.pointerType!=='touch'){if(houseAt(e.clientX,e.clientY)>=0)return; // дом поверх улицы — приоритет у дома

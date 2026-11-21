@@ -77,6 +77,37 @@ def src_ids(codes):
 lat0=43.11; kx=math.cos(math.radians(lat0))*111320; ky=110574
 lon0,latT=131.70,43.32
 def proj(c): return ((c[0]-lon0)*kx/10.0,(latT-c[1])*ky/10.0)  # units = 10 m
+def deep_point(ring):
+    # точка внутри кольца, наиболее удалённая от его границы (перебор по сетке 40×40, затем уточнение) — место подписи
+    xs=[p[0] for p in ring]; ys=[p[1] for p in ring]
+    def inside(x,y):
+        c=False
+        for (x1,y1),(x2,y2) in zip(ring,ring[1:]):
+            if (y1>y)!=(y2>y) and x<(x2-x1)*(y-y1)/(y2-y1)+x1: c=not c
+        return c
+    def dist(x,y):
+        m=1e18
+        for (x1,y1),(x2,y2) in zip(ring,ring[1:]):
+            dx,dy=x2-x1,y2-y1; L=dx*dx+dy*dy; t=0 if L==0 else max(0,min(1,((x-x1)*dx+(y-y1)*dy)/L))
+            m=min(m,(x-x1-t*dx)**2+(y-y1-t*dy)**2)
+        return m
+    x0,x1,y0,y1=min(xs),max(xs),min(ys),max(ys); best=(-1,(sum(xs)/len(xs),sum(ys)/len(ys))); n=40
+    for i in range(n+1):
+        for j in range(n+1):
+            x=x0+(x1-x0)*i/n; y=y0+(y1-y0)*j/n
+            if inside(x,y):
+                d=dist(x,y)
+                if d>best[0]: best=(d,(x,y))
+    (bx,by)=best[1]; sx,sy=(x1-x0)/n,(y1-y0)/n
+    for _ in range(3):
+        for i in range(-4,5):
+            for j in range(-4,5):
+                x=bx+sx*i/4; y=by+sy*j/4
+                if inside(x,y):
+                    d=dist(x,y)
+                    if d>best[0]: best=(d,(x,y))
+        (bx,by)=best[1]; sx/=4; sy/=4
+    return round(bx),round(by)
 def dp(pts,eps):
     if len(pts)<3: return pts
     a,b=pts[0],pts[-1]; dx,dy=b[0]-a[0],b[1]-a[1]; L=math.hypot(dx,dy) or 1e-9
@@ -187,7 +218,45 @@ for pl in PJ['places']:
     els=[OP[k.strip()] for k in pl['osm'].split(',')]
     if pl['kind'] in ('bay','island','strait'):
         e=els[0]; ll=e.get('center') or {'lat':e['lat'],'lon':e['lon']}
-        x,y=proj((ll['lon'],ll['lat'])); PL.append(dict(t=pl['kind'],n=pl['name'],x=round(x),y=round(y),a=notes)); continue
+        x,y=proj((ll['lon'],ll['lat'])); q=dict(t=pl['kind'],n=pl['name'],x=round(x),y=round(y),a=notes)
+        if 'ring' in e:  # T-032: контур бухты из OSM -> разомкнутая линия берега so (без линии по входу), точка — в «глубине» бухты
+            br=max(([proj((g['lon'],g['lat'])) for g in r] for r in e['ring']),key=len)
+            q['x'],q['y']=deep_point(br)
+            # вход в бухту — самый длинный отрезок кольца (замыкающая линия по входу; у всех 7 бухт он в разы длиннее остальных):
+            # кольцо разрезаем по нему — линия идёт от одного мыса входа вокруг бухты к другому
+            m=max(range(len(br)-1),key=lambda k:math.dist(br[k],br[k+1]))
+            line=br[m+1:]+br[1:m+1]
+            pts=[(round(a),round(b)) for a,b in dp(line,0.6)]; pts=[pts[0]]+[t for k,t in enumerate(pts[1:]) if t!=pts[k]]
+            q['so']='M%d %d'%pts[0]+''.join('l%d %d'%(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1]) for k in range(1,len(pts)))
+        elif pl['kind']=='bay' and rings:
+            # T-037: контура в OSM нет — разомкнутый берег бухты по нашей береговой линии (кольца суши water.json).
+            # Из точки бухты пускаем 180 лучей; луч, упёршийся в берег ближе Rmax, даёт точку берега; лучи, ушедшие дальше, — вход.
+            # Берег бухты — самая длинная по углу непрерывная серия попаданий. Rmax — поле shore в places.json или 4·d0 (70…350).
+            segs=[(a,b) for r in rings if len(r)>=20 for a,b in zip(r,r[1:]+r[:1])]
+            d0=min(math.dist(v,(x,y)) for r in rings if len(r)>=20 for v in r); Rm=pl.get('shore') or min(350,max(70,4*d0))
+            near=[(a,b) for a,b in segs if min(a[0],b[0])-Rm<=x<=max(a[0],b[0])+Rm and min(a[1],b[1])-Rm<=y<=max(a[1],b[1])+Rm]
+            K=180; hits=[]
+            for k in range(K):
+                dx,dy=math.cos(2*math.pi*k/K),math.sin(2*math.pi*k/K); best=None
+                for (x1,y1),(x2,y2) in near:
+                    ex,ey=x2-x1,y2-y1; den=dx*ey-dy*ex
+                    if abs(den)<1e-9: continue
+                    t=((x1-x)*ey-(y1-y)*ex)/den; u=((x1-x)*dy-(y1-y)*dx)/den
+                    if t>0 and 0<=u<=1 and (best is None or t<best): best=t
+                hits.append((x+dx*best,y+dy*best) if best is not None and best<=Rm else None)
+            if any(h is None for h in hits):  # серии попаданий по кругу; начинаем с первого промаха
+                s0=hits.index(None); seq=hits[s0:]+hits[:s0]; runs=[]; cur=[]
+                for h in seq:
+                    if h is None:
+                        if cur: runs.append(cur); cur=[]
+                    else: cur.append(h)
+                if cur: runs.append(cur)
+                pts=max(runs,key=len) if runs else []
+            else: pts=hits+hits[:1]
+            pts=[(round(a),round(b)) for a,b in pts]; pts=[pts[0]]+[t for k,t in enumerate(pts[1:]) if t!=pts[k]] if pts else []
+            if len(pts)>=3: q['so']='M%d %d'%pts[0]+''.join('l%d %d'%(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1]) for k in range(1,len(pts)))
+            print('  берег',pl['name'],'d0',round(d0),'Rmax',round(Rm),'точек',len(pts),'лучей-промахов',sum(h is None for h in hits))
+        PL.append(q); continue
     d='';best=[]
     for e in els:
         pts=dp([proj((g['lon'],g['lat'])) for g in e['geometry']],0.6); pts=[(round(x),round(y)) for x,y in pts]

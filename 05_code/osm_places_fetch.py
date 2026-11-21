@@ -6,6 +6,8 @@
 # названиям, bbox 42.8–43.1 / 131.55–132.0. Ответы кэшируются в каталоге (по умолчанию — временный),
 # повторный запуск докачивает недостающие.
 # В выходной файл попадают только элементы, на которые ссылаются places.json (поле osm), с центром (бухты, острова, пролив) или геометрией (реки).
+# Контуры бухт (way/relation natural=bay; T-032) — из основного API OSM (api/0.6/<тип>/<id>/full.json, лёгкий запрос по id;
+# у Overpass тот же запрос с out geom обрывался 504): внешние линии relation собираются в замкнутые кольца (поле ring).
 # Данные: © участники OpenStreetMap, ODbL.
 import json, os, sys, time, tempfile, urllib.request, urllib.parse
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -45,9 +47,11 @@ def fetch(kind):
             els += d['elements']
     return els, stamps
 
-need = set()
+need, shape = set(), set()
 for p in json.load(open(os.path.join(ROOT, '06_research', 'places.json'), encoding='utf-8'))['places']:
-    need |= {k.strip() for k in p.get('osm', '').split(',') if k.strip()}
+    ks = {k.strip() for k in p.get('osm', '').split(',') if k.strip()}
+    need |= ks
+    if p['kind'] == 'bay': shape |= {k for k in ks if not k.startswith('node/')}
 got, stamps = {}, set()
 for kind in SEL:
     els, st = fetch(kind); stamps |= st
@@ -59,9 +63,48 @@ for kind in SEL:
         elif 'lat' in e: x['lat'], x['lon'] = e['lat'], e['lon']
         if 'geometry' in e: x['geometry'] = [{'lat': g['lat'], 'lon': g['lon']} for g in e['geometry']]
         got[k] = x
+# контуры бухт — основной API OSM
+API = 'https://api.openstreetmap.org/api/0.6/'
+def api_full(k):
+    fn = os.path.join(CACHE, 'api_' + k.replace('/', '_') + '.json')
+    if not os.path.exists(fn):
+        for a in range(5):
+            try:
+                r = urllib.request.urlopen(urllib.request.Request(API + k + '/full.json', headers={'User-Agent': 'vl-history-map/1.0', 'Accept': 'application/json'}), timeout=60).read()
+                json.loads(r); open(fn, 'wb').write(r); break
+            except Exception as ex:
+                print(' retry api', k, str(ex)[:50], flush=True); time.sleep(5)
+        else:
+            sys.exit(f'контур {k} не скачан — запустите ещё раз')
+        time.sleep(1)
+    return json.load(open(fn))
+def join_rings(ways):
+    segs, out = [list(w) for w in ways], []
+    while segs:
+        r = segs.pop(0)
+        while r[0] != r[-1]:
+            for i, q in enumerate(segs):
+                if q[0] == r[-1]: r += q[1:]; break
+                if q[-1] == r[-1]: r += q[::-1][1:]; break
+                if q[-1] == r[0]: r = q + r[1:]; break
+                if q[0] == r[0]: r = q[::-1] + r[1:]; break
+            else: break
+            segs.pop(i)
+        assert r[0] == r[-1], 'контур не замкнулся'
+        out.append(r)
+    return out
+for k in sorted(shape):
+    E = api_full(k)['elements']
+    N = {e['id']: e for e in E if e['type'] == 'node'}
+    W = {e['id']: e['nodes'] for e in E if e['type'] == 'way'}
+    if k.startswith('way/'): rings = join_rings([W[int(k.split('/')[1])]])
+    else:
+        rel = next(e for e in E if e['type'] == 'relation' and e['id'] == int(k.split('/')[1]))
+        rings = join_rings([W[m['ref']] for m in rel['members'] if m['type'] == 'way' and m.get('role') in ('outer', '')])
+    got[k]['ring'] = [[{'lat': N[n]['lat'], 'lon': N[n]['lon']} for n in r] for r in rings]
 miss = sorted(need - set(got))
 assert not miss, 'не найдены в OSM: ' + ', '.join(miss)
-out = {'source': 'OpenStreetMap через Overpass API, © участники OpenStreetMap (ODbL)',
+out = {'source': 'OpenStreetMap через Overpass API; контуры бухт — основной API OSM (api.openstreetmap.org), © участники OpenStreetMap (ODbL)',
        'osm_base': [min(s for s in stamps if s), max(s for s in stamps if s)], 'bbox': {k: v[3] for k, v in SEL.items()},
        'elements': [got[k] for k in sorted(got)]}
 p = os.path.join(ROOT, '02_data', 'osm_places.json')
