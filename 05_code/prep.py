@@ -23,7 +23,9 @@ def clean_url(u):
     while u.endswith(')') and u.count(')')>u.count('('):u=u[:-1].rstrip('.,;')
     return u
 VV_DOCS={l.strip()[:-3] for l in open(os.path.join(DATA_DIR,'vvmap_documents.txt'),encoding='utf-8') if l.strip().endswith('.md')}
-VV_SRC={r['street']:(r['source'] or '').strip() for r in csv.DictReader(open(os.path.join(DATA_DIR,'vvmap_streets_years.csv'),encoding='utf-8'),delimiter=';')}
+# ключ без учёта регистра и ё/е: у vvmap «улица Героя России Жоги», «улица Военное Шоссе», у нас — со строчной
+_vk=lambda n:n.lower().replace('ё','е')
+VV_SRC={_vk(r['street']):(r['source'] or '').strip() for r in csv.DictReader(open(os.path.join(DATA_DIR,'vvmap_streets_years.csv'),encoding='utf-8'),delimiter=';')}
 RESEARCH={}
 for fn in ('findings.jsonl','findings2.jsonl'):  # волна 2 дополняет волну 1
     for l in open(os.path.join(HERE,'..','06_research',fn),encoding='utf-8'):
@@ -38,7 +40,7 @@ def src_codes(name,year_source,note=''):
     codes=[]
     def add(c):
         if c not in codes:codes.append(c)
-    for t in (VV_SRC.get(name,''),year_source):
+    for t in (VV_SRC.get(_vk(name),''),year_source):
         m=re.fullmatch(r'(\d{8}-\d+)\.md',t)
         if m and m.group(1) in VV_DOCS:add('d:'+m.group(1))
         for dd,mm,yy,no in re.findall(r'от (\d{2})\.(\d{2})\.(\d{4})\s*(?:г\.)?\s*[№N]\s*(\d+)',t):
@@ -215,7 +217,30 @@ keys=[name_key(o['n']) for o in out]
 names_total=len(out); names_unique=len(set(keys)); names_multi=sum(1 for k,c in collections.Counter(keys).items() if c>1)
 print('names_total',names_total,'names_unique',names_unique,'names_multi',names_multi)
 print('sources: lines',sum(1 for o in out if o.get('src')),'unique links',len(SRCS))
+# фильтр «Источники» (T-035): у каждой линии — группы источников сведений о названии и годе (поле sg, индексы в SG).
+# Название улицы — из списка ginfo.ru, геометрия — OSM через vvmap; группы ниже — откуда год/справка.
+# «vvmap (первоисточник не указан)» — запись vvmap только с описанием или годом.
+SG=['Постановления','Справочник 1924 г.','Списки 1954 и 1957 гг.','Telegram t.me/vvtopo','Telegram t.me/ochkuryvl','Статьи VL.ru','Википедия','Wikimapia','Другие сайты','vvmap (первоисточник не указан)']
+for o in out:
+    g=set(); yd=o['yd'].lower()
+    for i in o.get('src',[]):
+        c=SRCS[i]
+        if c[0] in 'dp': g.add(0)
+        elif c.startswith('t:vvtopo/'): g.add(3)
+        elif c.startswith('t:ochkuryvl/'): g.add(4)
+        elif c.startswith('t:'): g.add(8)
+        elif 'wikipedia.org' in c or 'ruwiki.ru' in c: g.add(6)
+        elif 'wikimapia.org' in c: g.add(7)
+        elif 'newsvl.ru' in c: g.add(5)
+        else: g.add(8)
+    if '1924' in yd and 'справоч' in yd: g.add(1)
+    if 'спис' in yd and ('1954' in yd or '1957' in yd): g.add(2)
+    if o.get('a'): g.add(5)
+    if VV_SRC.get(_vk(o['n']),'').lower()=='wikimapia': g.add(7)
+    if not g: g.add(9)
+    o['sg']=sorted(g)
+print('source groups:',{SG[k]:sum(1 for o in out if k in o['sg']) for k in range(len(SG))})
 print('article notes: lines',sum(1 for o in out if o.get('a')),'articles',len(ARTS))
-json.dump(dict(f=out,capes=cp,places=PL,srcs=SRCS,arts=ARTS,names_total=names_total,names_unique=names_unique,houses=houses_seg,water=water_seg),open(OUT,'w',encoding='utf-8'),ensure_ascii=False,separators=(',',':'))
+json.dump(dict(f=out,capes=cp,places=PL,srcs=SRCS,sg=SG,arts=ARTS,names_total=names_total,names_unique=names_unique,houses=houses_seg,water=water_seg),open(OUT,'w',encoding='utf-8'),ensure_ascii=False,separators=(',',':'))
 print(os.path.getsize(OUT))
 print(collections.Counter(o['g'] for o in out)); print(sum(1 for o in out if o['y'] is None))

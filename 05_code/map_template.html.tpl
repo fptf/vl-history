@@ -109,7 +109,11 @@ svg#map{position:relative;width:100%;height:100%;display:block} /* над хол
 .lchk::before{content:"";width:15px;height:15px;border-radius:3px;border:1.5px solid var(--ink-2);box-sizing:border-box;flex:none}
 .lchk[aria-checked="true"]::before{border-color:var(--ink);background:var(--ink);box-shadow:inset 0 0 0 2.5px var(--panel)}
 .lchk:disabled{cursor:default;color:var(--ink-2)}
-.lchk i{font-style:normal;color:var(--ink-2);font-size:13px;margin-left:auto}
+.lchk i{font-style:normal;color:var(--ink-2);font-size:13px;margin-left:auto;white-space:nowrap}
+.lmenu{max-height:min(75vh,640px);overflow-y:auto}
+.lsrc{border-top:1px solid var(--line);margin-top:6px;padding-top:6px}
+.lmh{margin:4px 8px 2px;font-size:12px;font-weight:600;color:var(--ink-2)}
+#srcleg .lchk{padding:6px 8px;font-size:13px}
 .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);font-size:13px;font-weight:600;padding:4px 8px;border-radius:4px;white-space:nowrap;transform:translate(12px,-130%);display:none;z-index:3}
 .zoom{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:6px;z-index:2}
 .zoom button{width:36px;height:36px;border:1px solid var(--line);background:var(--panel);border-radius:6px;font-size:18px;line-height:1;cursor:pointer}
@@ -202,6 +206,9 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
 .legend button:hover,.legend button[aria-pressed="true"]{background:color-mix(in srgb,var(--ink) 8%,transparent)}
 .legend .sw{width:14px;height:4px;border-radius:2px}
 .legend .n{color:var(--ink-2);font-variant-numeric:tabular-nums}
+.srcfoot{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;color:var(--ink-2);margin:4px 8px 2px}
+.srcfoot button{border:0;background:none;padding:0;font:inherit;color:var(--ink);text-decoration:underline;cursor:pointer}
+#streets .s.fo,#hit path.fo{display:none}
 .search input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);font:inherit;font-size:14px}
 .search p{margin:6px 0 0;font-size:13px;color:var(--ink-2)}
 #qmsg:empty{display:none}
@@ -312,6 +319,11 @@ h2{font-size:15px;margin:0 0 8px;font-weight:700}
             <button type="button" class="lchk" role="checkbox" aria-checked="true" data-l="streets">Улицы</button>
             <button type="button" class="lchk" role="checkbox" aria-checked="false" data-l="houses">Дома (год постройки)<i id="hcount-m"></i></button>
             <button type="button" class="lchk" role="checkbox" aria-checked="true" data-l="water">Бухты и реки</button>
+            <div class="lsrc" id="lsrc">
+              <p class="lmh">Источники сведений об улицах</p>
+              <div id="srcleg" role="group" aria-label="Показывать улицы с источником"></div>
+              <div class="srcfoot"><span id="srcshown"></span><button type="button" id="srcall" hidden>показать все</button></div>
+            </div>
           </div>
         </div>
         <div class="lset" id="set-streets">
@@ -417,11 +429,13 @@ const placeEls=PLACES.map((p,k)=>{
 
 // ---------- слои «Улицы / Бухты / Реки» (T-031): класс off-<слой> на svg; открытие объекта выключенного слоя включает слой
 // у слоя есть настройки (#set-<слой>) — они видны только при включённом слое; дома включаются в своём блоке (setHouses)
+let streetsShown=null; // число видимых линий при фильтре по источникам (null — фильтр не задан)
 const layersEl=document.querySelector('.layers-ui'), lbtn=document.getElementById('lbtn'), lmenu=document.getElementById('lmenu'), lsum=document.getElementById('lsum'),
   layerOn={streets:true,houses:false,water:true}, LNAME={streets:'улицы',houses:'дома',water:'бухты и реки'}, LAYER_OF={bay:'water',river:'water'};
 function syncLayerUI(l){lmenu.querySelector(`.lchk[data-l="${l}"]`).setAttribute('aria-checked',String(layerOn[l]));
   const set=document.getElementById('set-'+l); if(set)set.hidden=!layerOn[l];
-  const on=Object.keys(layerOn).filter(k=>layerOn[k]).map(k=>LNAME[k]); lsum.textContent=on.length?on.join(', '):'все выключены';}
+  if(l==='streets')document.getElementById('lsrc').hidden=!layerOn.streets;
+  const on=Object.keys(layerOn).filter(k=>layerOn[k]).map(k=>k==='streets'&&streetsShown!=null?`улицы (${streetsShown} из ${F.length})`:LNAME[k]); lsum.textContent=on.length?on.join(', '):'все выключены';}
 function setLayer(l,on){if(!(l in layerOn)||layerOn[l]===on)return;
   if(l==='houses'){setHouses(on);return;}
   layerOn[l]=on;svg.classList.toggle('off-'+l,!on);syncLayerUI(l);
@@ -890,6 +904,26 @@ GROUPS.forEach((g,gi)=>{
   li.innerHTML=`<button data-g="${gi}" aria-pressed="false"><span class="sw" style="background:var(--g${gi})"></span><span>${esc(GSHORT[gi])}</span><span class="n">${n}</span></button>`;
   legend.appendChild(li);
 });
+// источники сведений (T-035) — в выпадающем списке слоёв: флажок — фильтр улиц, наведение — подсветка
+const SG=DATA.sg||[], bySrc=SG.map(()=>[]), srcleg=document.getElementById('srcleg');
+F.forEach((f,i)=>(f.sg||[]).forEach(k=>bySrc[k].push(i)));
+srcleg.innerHTML=SG.map((g,k)=>`<button type="button" class="lchk" role="checkbox" aria-checked="true" data-sf="${k}">${esc(g)}<i>${bySrc[k].length}</i></button>`).join('');
+// улица видна, если у неё есть хотя бы один отмеченный источник
+const srcOn=SG.map(()=>true), srcShown=document.getElementById('srcshown'), srcAll=document.getElementById('srcall');
+function applySrcFilter(){let n=0;
+  F.forEach((f,i)=>{const v=!f.sg||f.sg.some(k=>srcOn[k]);if(v)n++;paths[i].classList.toggle('fo',!v);hits[i].classList.toggle('fo',!v);});
+  srcleg.querySelectorAll('[data-sf]').forEach(b=>b.setAttribute('aria-checked',String(srcOn[+b.dataset.sf])));
+  const all=srcOn.every(Boolean); srcShown.textContent=all?'Показаны все линии':`Показано ${n} из ${F.length} линий`; srcAll.hidden=all;
+  streetsShown=all?null:n; syncLayerUI('streets');}
+srcleg.addEventListener('click',e=>{const b=e.target.closest('[data-sf]');if(!b)return;e.stopPropagation();const k=+b.dataset.sf;srcOn[k]=!srcOn[k];applySrcFilter();});
+srcAll.addEventListener('click',e=>{e.stopPropagation();srcOn.fill(true);applySrcFilter();});
+applySrcFilter();
+function showSource(k){const ids=bySrc[k];showSet(ids);markDecade(null);
+  plate.classList.add('empty');pkind.textContent='источник';setName(SG[k]);
+  const gr={};ids.forEach(j=>{gr[F[j].g]=(gr[F[j].g]||0)+1;});
+  details.innerHTML=`<p class="meta">Линий: <b>${ids.length}</b></p><p class="meta">${Object.entries(gr).sort((a,b)=>b[1]-a[1]).map(([c,n])=>`${esc(c)}: <b>${n}</b>`).join('<br>')}</p>`;}
+srcleg.addEventListener('pointerover',e=>{const b=e.target.closest('[data-sf]');if(b&&e.pointerType!=='touch'&&!somethingPinned())showSource(+b.dataset.sf);});
+srcleg.addEventListener('pointerleave',e=>{if(e.pointerType!=='touch'&&!somethingPinned())restore();});
 function showGroup(gi){showSet(byKey.group[GROUPS[gi]]||[]);markDecade(null);
   plate.classList.add('empty');pkind.textContent='группа';setName(GROUPS[gi]);
   const cats={};(byKey.group[GROUPS[gi]]||[]).forEach(j=>{cats[F[j].c]=(cats[F[j].c]||0)+1;});
