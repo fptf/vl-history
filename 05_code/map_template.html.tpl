@@ -86,7 +86,8 @@ svg#map{position:relative;width:100%;height:100%;display:block} /* над хол
 #places .pl-river text,#places .pl-strait text,#places .pl-island text,#places .pl-peninsula text{text-anchor:middle}
 #places .pl-island text,#places .pl-peninsula text{fill:var(--ink-2);font-style:normal;letter-spacing:.02em}
 #places .pl-cape text{fill:var(--ink-2);font-style:normal;text-decoration:underline dotted}
-#places .pl-bay circle{fill:var(--water-ink)}
+#places .pl-bay circle{fill:var(--paper);stroke:var(--water-ink);stroke-width:2.6;vector-effect:non-scaling-stroke} /* кольцо — другая форма, чем точки мысов */
+#places .pl-bay.sel circle,#places .pl-bay.hov circle{fill:var(--water-ink);stroke:var(--ink);stroke-width:2.6}
 #places circle{fill:var(--ink-2)}
 #places .place.sel text,#places .place.hov text{font-weight:700;fill:var(--ink)}
 #places .place.sel circle,#places .place.hov circle{fill:var(--ink);stroke:var(--paper);stroke-width:2;vector-effect:non-scaling-stroke}
@@ -471,7 +472,7 @@ function apply(){
   gCapes.querySelectorAll('circle').forEach(c=>c.setAttribute('r',2.2/scale));
   gCapes.querySelectorAll('text').forEach(t=>{t.style.fontSize=(11/scale)+'px';t.style.strokeWidth=(3/scale)+'px';});
   placeEls.forEach((g,k)=>{const p=PLACES[k],t=g.lastChild,c=g.firstChild;t.style.fontSize=(12/scale)+'px';t.style.strokeWidth=(3/scale)+'px';
-    t.setAttribute('x',p.t==='cape'||p.t==='bay'?p.x+6/scale:p.x);t.setAttribute('y',p.y+4/scale);if(c!==t)c.setAttribute('r',2.6/scale);});
+    t.setAttribute('x',p.t==='bay'?p.x+9/scale:p.t==='cape'?p.x+6/scale:p.x);t.setAttribute('y',p.y+4/scale);if(c!==t)c.setAttribute('r',(p.t==='bay'?5:2.6)/scale);});
   svg.classList.toggle('capes-off',scale<0.55);
   drawHouses();
 }
